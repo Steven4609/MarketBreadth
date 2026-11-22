@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#070b12">
+<meta name="robots" content="noindex,nofollow">
 <title>市场宽度和情绪报告</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,6 +13,7 @@
 :root{color-scheme:dark;
 --bg:#070b12;--ink:#e9eef6;--soft:#c3ccd9;--mute:#8b97a9;--dim:#5d6878;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);
 --spy:#6ea8ff;--qqq:#b59cff;--vix:#ff7fb3;--p20:#f5a33b;--p50:#36c5c9;--cnn:#f2705d;
+--bull:#4fc98b;--bear:#ef6f6c;--neut:#9aa6b8;--spr:#e8c36a;
 --red:#f2705d;--orange:#f5a33b;--green:#4fc98b;--dgreen:#2fae70;
 --font:Inter,"PingFang SC","Microsoft YaHei","Noto Sans SC","Hiragino Sans GB",system-ui,sans-serif}
 *{box-sizing:border-box;min-width:0}
@@ -202,9 +204,18 @@ footer a{color:var(--mute)}
   </div>
 </section>
 
+<section class="panel glass" data-c="aa">
+  <div class="ph"><h2 data-i18n="aaT"></h2><div class="chips legend"></div><span class="grow"></span><div class="seg rng"></div><button class="btn col" type="button"></button></div>
+  <div class="body">
+    <div class="row2"><div class="fghead" id="aaHead" style="margin:0"></div><div class="seg"><button class="btn" type="button" data-aa="ratio" data-i18n="aaR"></button><button class="btn" type="button" data-aa="spread" data-i18n="aaS"></button></div></div>
+    <div class="fig"></div>
+    <p class="cap" id="aaCap"></p>
+  </div>
+</section>
+
 <section class="stats"><div class="stat glass" id="st20"></div><div class="stat glass" id="st50"></div></section>
 
-<section class="notes glass"><div data-l="zh"><h2>口径与数据说明</h2><div class="ngrid"><div class="nb"><h3><i style="background:var(--p50)"></i>参与度定义</h3><ul><li>收盘价<b>严格高于</b>自身 20 / 50 日均线（均线含当日）的成分股占比</li><li>分母：满 20 / 50 根 K 线、且当天有收盘价的成分股</li><li>点按曲线可看当天的“上方只数 / 分母”</li></ul></div><div class="nb"><h3><i style="background:var(--spy)"></i>价格口径</h3><ul><li>Yahoo Finance <b>原始收盘价</b>（只复权拆股，不复权分红）</li><li>与 Bloomberg / TradingView 同口径</li><li>分红复权的读数会系统性偏高，不采用</li></ul></div><div class="nb"><h3><i style="background:var(--qqq)"></i>样本</h3><ul><li>Wikipedia 当日名单（503 只）往回计算</li><li>有<b>幸存者偏差</b>，历史读数仅供参考</li><li>每天逐只明细存在 <code>data/details/</code></li></ul></div><div class="nb"><h3><i style="background:var(--cnn)"></i>CNN 恐慌贪婪指数</h3><ul><li>来源：CNN 官方端点；备用 GitHub whit3rabbit 数据集</li><li><b>缺 2026-03-12</b>：源头漏数，未插值，图上断线</li><li>分区与颜色见下方表格</li></ul></div><div class="nb"><h3><i style="background:var(--vix)"></i>叠加对比图</h3><ul><li><b>起点=100</b>：比较涨跌幅度</li><li><b>区间归一化</b>：只比形状与拐点</li><li>点按显示原始数值；.VIX 休市日（05-25、09-07）不计入</li></ul></div><div class="nb"><h3><i style="background:var(--vix)"></i>.VIX 波动率指数</h3><ul><li>标普500 期权隐含的未来 30 天年化波动率</li><li><b>&lt;15</b> 平静 · <b>15–20</b> 正常 · <b>20–30</b> 升温 · <b>30–35</b> 紧张 · <b>&gt;35</b> 恐慌</li><li>Yahoo ^VIX 收盘价；休市日的读数不计入</li></ul></div><div class="nb"><h3><i style="background:var(--p20)"></i>自动更新</h3><ul><li>每个交易日<b>美东 19:30</b>（CNN 当天值已定格）</li><li>缺数不插值、不补数，写进 <code>data/latest.json</code></li><li>全部数据见<a id="repoLink" href="https://github.com/">数据仓库</a>，CSV 可直接用 Excel 打开</li></ul></div></div><div class="nrow"><div class="nt"><h3>交叉核对（2026-11-20 快照）</h3><table><thead><tr><th>来源</th><th class="n">20日</th><th class="n">50日</th></tr></thead><tbody><tr><td><b>本看板</b></td><td class="n"><b>18.92%</b></td><td class="n"><b>42.71%</b></td></tr><tr><td>Bloomberg<span class="q">博主引用</span></td><td class="n">18.9%</td><td class="n">42.5%</td></tr><tr><td>2ndOcean<span class="q">分红复权</span></td><td class="n">19.4%</td><td class="n">42.9%</td></tr><tr><td>StockCharts<span class="q">分红复权</span></td><td class="n">~21%</td><td class="n">~43%</td></tr></tbody></table><p class="nfoot">差异在 1–3 只股票之内；分红复权口径系统性偏高。</p></div><div class="nt"><h3>顶部数字变色规则</h3><div class="scroll"><table class="ctab"><thead><tr><th></th><th>红</th><th>橙</th><th>正常</th><th>绿</th></tr></thead><tbody><tr><td><b>参与度</b></td><td><span class="tag red">&lt;20%</span></td><td><span class="tag orange">20–30%</span></td><td><span class="tag norm">30–80%</span></td><td><span class="tag green">&gt;80%</span></td></tr><tr><td><b>CNN</b></td><td><span class="tag red">0–24 极度恐慌</span></td><td><span class="tag orange">25–44 恐慌</span></td><td><span class="tag norm">45–55 中性</span></td><td><span class="tag green">56–75 贪婪</span><span class="tag dgreen">76+ 极度贪婪</span></td></tr><tr><td><b>.VIX</b></td><td><span class="tag red">&gt;35</span></td><td><span class="tag orange">20–35</span></td><td><span class="tag norm">15–20</span></td><td><span class="tag green">&lt;15</span></td></tr></tbody></table></div><p class="nfoot">SPY / QQQ 不变色；只变数字颜色，卡片底色不动。</p></div></div></div><div data-l="en"><h2>Methodology &amp; data notes</h2><div class="ngrid"><div class="nb"><h3><i style="background:var(--p50)"></i>Participation</h3><ul><li>Share of members closing <b>strictly above</b> their own 20 / 50-day MA (incl. the day)</li><li>Denominator: members with 20 / 50 bars and a close that day</li><li>Tap a chart for that day's count / denominator</li></ul></div><div class="nb"><h3><i style="background:var(--spy)"></i>Price basis</h3><ul><li>Yahoo Finance <b>raw close</b> (split-adjusted, not dividend-adjusted)</li><li>Same basis as Bloomberg / TradingView</li><li>Dividend-adjusted readings run high; not used</li></ul></div><div class="nb"><h3><i style="background:var(--qqq)"></i>Sample</h3><ul><li>Today's Wikipedia list (503 tickers) applied backwards</li><li><b>Survivorship bias</b>: history is indicative only</li><li>Per-stock detail for each day in <code>data/details/</code></li></ul></div><div class="nb"><h3><i style="background:var(--cnn)"></i>CNN Fear &amp; Greed</h3><ul><li>Source: CNN endpoint; fallback GitHub whit3rabbit dataset</li><li><b>2026-03-12 missing</b> at source; not interpolated, line breaks</li><li>Zones and colours in the table below</li></ul></div><div class="nb"><h3><i style="background:var(--vix)"></i>Overlay chart</h3><ul><li><b>Start = 100</b>: compares the size of moves</li><li><b>Range-normalized</b>: compares shape and turning points only</li><li>Readouts show raw values; .VIX holidays (05-25, 09-07) excluded</li></ul></div><div class="nb"><h3><i style="background:var(--vix)"></i>.VIX volatility</h3><ul><li>30-day implied volatility of S&amp;P 500 options, annualized</li><li><b>&lt;15</b> calm · <b>15–20</b> normal · <b>20–30</b> elevated · <b>30–35</b> stressed · <b>&gt;35</b> panic</li><li>Yahoo ^VIX close; holiday readings excluded</li></ul></div><div class="nb"><h3><i style="background:var(--p20)"></i>Auto update</h3><ul><li>Each trading day at <b>19:30 ET</b> (CNN value final)</li><li>Gaps are never filled; listed in <code>data/latest.json</code></li><li>All data in the <a id="repoLink2" href="https://github.com/">repository</a>; CSVs open in Excel</li></ul></div></div><div class="nrow"><div class="nt"><h3>Cross-check (2026-11-20 snapshot)</h3><table><thead><tr><th>Source</th><th class="n">20-day</th><th class="n">50-day</th></tr></thead><tbody><tr><td><b>This page</b></td><td class="n"><b>18.92%</b></td><td class="n"><b>42.71%</b></td></tr><tr><td>Bloomberg<span class="q">as quoted</span></td><td class="n">18.9%</td><td class="n">42.5%</td></tr><tr><td>2ndOcean<span class="q">div-adjusted</span></td><td class="n">19.4%</td><td class="n">42.9%</td></tr><tr><td>StockCharts<span class="q">div-adjusted</span></td><td class="n">~21%</td><td class="n">~43%</td></tr></tbody></table><p class="nfoot">Differences are within 1–3 stocks; dividend-adjusted sources run high.</p></div><div class="nt"><h3>Colour rules for the top figures</h3><div class="scroll"><table class="ctab"><thead><tr><th></th><th>Red</th><th>Orange</th><th>Normal</th><th>Green</th></tr></thead><tbody><tr><td><b>Participation</b></td><td><span class="tag red">&lt;20%</span></td><td><span class="tag orange">20–30%</span></td><td><span class="tag norm">30–80%</span></td><td><span class="tag green">&gt;80%</span></td></tr><tr><td><b>CNN</b></td><td><span class="tag red">0–24 Ext. fear</span></td><td><span class="tag orange">25–44 Fear</span></td><td><span class="tag norm">45–55 Neutral</span></td><td><span class="tag green">56–75 Greed</span><span class="tag dgreen">76+ Ext. greed</span></td></tr><tr><td><b>.VIX</b></td><td><span class="tag red">&gt;35</span></td><td><span class="tag orange">20–35</span></td><td><span class="tag norm">15–20</span></td><td><span class="tag green">&lt;15</span></td></tr></tbody></table></div><p class="nfoot">SPY / QQQ are not coloured; only the figure changes colour.</p></div></div></div></section>
+<section class="notes glass"><div data-l="zh"><h2>口径与数据说明</h2><div class="ngrid"><div class="nb"><h3><i style="background:var(--p50)"></i>参与度定义</h3><ul><li>收盘价<b>严格高于</b>自身 20 / 50 日均线（均线含当日）的成分股占比</li><li>分母：满 20 / 50 根 K 线、且当天有收盘价的成分股</li><li>点按曲线可看当天的“上方只数 / 分母”</li></ul></div><div class="nb"><h3><i style="background:var(--spy)"></i>价格口径</h3><ul><li>Yahoo Finance <b>原始收盘价</b>（只复权拆股，不复权分红）</li><li>与 Bloomberg / TradingView 同口径</li><li>分红复权的读数会系统性偏高，不采用</li></ul></div><div class="nb"><h3><i style="background:var(--qqq)"></i>样本</h3><ul><li>Wikipedia 当日名单（503 只）往回计算</li><li>有<b>幸存者偏差</b>，历史读数仅供参考</li><li>每天逐只明细存在 <code>data/details/</code></li></ul></div><div class="nb"><h3><i style="background:var(--cnn)"></i>CNN 恐慌贪婪指数</h3><ul><li>来源：CNN 官方端点；备用 GitHub whit3rabbit 数据集</li><li><b>缺 2026-03-12</b>：源头漏数，未插值，图上断线</li><li>分区与颜色见下方表格</li></ul></div><div class="nb"><h3><i style="background:var(--vix)"></i>叠加对比图</h3><ul><li><b>起点=100</b>：比较涨跌幅度</li><li><b>区间归一化</b>：只比形状与拐点</li><li>点按显示原始数值；.VIX 休市日（05-25、09-07）不计入</li></ul></div><div class="nb"><h3><i style="background:var(--vix)"></i>.VIX 波动率指数</h3><ul><li>标普500 期权隐含的未来 30 天年化波动率</li><li><b>&lt;15</b> 平静 · <b>15–20</b> 正常 · <b>20–30</b> 升温 · <b>30–35</b> 紧张 · <b>&gt;35</b> 恐慌</li><li>Yahoo ^VIX 收盘价；休市日的读数不计入</li></ul></div><div class="nb"><h3><i style="background:var(--bull)"></i>AAII 散户情绪调查</h3><ul><li>个人投资者对未来 6 个月股市的看法，每周四公布，图上画在公布日</li><li>长期均值（1987 年起 2,050 周，本页自算）：看多 37.6%、看空 31.5%、多空差 +6.1</li><li>只存近两年数据；数据版权归 AAII，仅供个人参考</li></ul></div><div class="nb"><h3><i style="background:var(--p20)"></i>自动更新</h3><ul><li>每个交易日<b>美东 19:30</b>（CNN 当天值已定格）</li><li>缺数不插值、不补数，写进 <code>data/latest.json</code></li><li>全部数据见<a id="repoLink" href="https://github.com/">数据仓库</a>，CSV 可直接用 Excel 打开</li></ul></div></div><div class="nrow"><div class="nt"><h3>交叉核对（2026-11-20 快照）</h3><table><thead><tr><th>来源</th><th class="n">20日</th><th class="n">50日</th></tr></thead><tbody><tr><td><b>本看板</b></td><td class="n"><b>18.92%</b></td><td class="n"><b>42.71%</b></td></tr><tr><td>Bloomberg<span class="q">博主引用</span></td><td class="n">18.9%</td><td class="n">42.5%</td></tr><tr><td>2ndOcean<span class="q">分红复权</span></td><td class="n">19.4%</td><td class="n">42.9%</td></tr><tr><td>StockCharts<span class="q">分红复权</span></td><td class="n">~21%</td><td class="n">~43%</td></tr></tbody></table><p class="nfoot">差异在 1–3 只股票之内；分红复权口径系统性偏高。</p></div><div class="nt"><h3>顶部数字变色规则</h3><div class="scroll"><table class="ctab"><thead><tr><th></th><th>红</th><th>橙</th><th>正常</th><th>绿</th></tr></thead><tbody><tr><td><b>参与度</b></td><td><span class="tag red">&lt;20%</span></td><td><span class="tag orange">20–30%</span></td><td><span class="tag norm">30–80%</span></td><td><span class="tag green">&gt;80%</span></td></tr><tr><td><b>CNN</b></td><td><span class="tag red">0–24 极度恐慌</span></td><td><span class="tag orange">25–44 恐慌</span></td><td><span class="tag norm">45–55 中性</span></td><td><span class="tag green">56–75 贪婪</span><span class="tag dgreen">76+ 极度贪婪</span></td></tr><tr><td><b>.VIX</b></td><td><span class="tag red">&gt;35</span></td><td><span class="tag orange">20–35</span></td><td><span class="tag norm">15–20</span></td><td><span class="tag green">&lt;15</span></td></tr></tbody></table></div><p class="nfoot">SPY / QQQ 不变色；只变数字颜色，卡片底色不动。</p></div></div></div><div data-l="en"><h2>Methodology &amp; data notes</h2><div class="ngrid"><div class="nb"><h3><i style="background:var(--p50)"></i>Participation</h3><ul><li>Share of members closing <b>strictly above</b> their own 20 / 50-day MA (incl. the day)</li><li>Denominator: members with 20 / 50 bars and a close that day</li><li>Tap a chart for that day's count / denominator</li></ul></div><div class="nb"><h3><i style="background:var(--spy)"></i>Price basis</h3><ul><li>Yahoo Finance <b>raw close</b> (split-adjusted, not dividend-adjusted)</li><li>Same basis as Bloomberg / TradingView</li><li>Dividend-adjusted readings run high; not used</li></ul></div><div class="nb"><h3><i style="background:var(--qqq)"></i>Sample</h3><ul><li>Today's Wikipedia list (503 tickers) applied backwards</li><li><b>Survivorship bias</b>: history is indicative only</li><li>Per-stock detail for each day in <code>data/details/</code></li></ul></div><div class="nb"><h3><i style="background:var(--cnn)"></i>CNN Fear &amp; Greed</h3><ul><li>Source: CNN endpoint; fallback GitHub whit3rabbit dataset</li><li><b>2026-03-12 missing</b> at source; not interpolated, line breaks</li><li>Zones and colours in the table below</li></ul></div><div class="nb"><h3><i style="background:var(--vix)"></i>Overlay chart</h3><ul><li><b>Start = 100</b>: compares the size of moves</li><li><b>Range-normalized</b>: compares shape and turning points only</li><li>Readouts show raw values; .VIX holidays (05-25, 09-07) excluded</li></ul></div><div class="nb"><h3><i style="background:var(--vix)"></i>.VIX volatility</h3><ul><li>30-day implied volatility of S&amp;P 500 options, annualized</li><li><b>&lt;15</b> calm · <b>15–20</b> normal · <b>20–30</b> elevated · <b>30–35</b> stressed · <b>&gt;35</b> panic</li><li>Yahoo ^VIX close; holiday readings excluded</li></ul></div><div class="nb"><h3><i style="background:var(--bull)"></i>AAII sentiment survey</h3><ul><li>Individual investors' 6-month outlook, published Thursdays; plotted on the release date</li><li>Long-run averages (2,050 weeks since 1987, computed here): bullish 37.6%, bearish 31.5%, spread +6.1</li><li>Only the last two years are stored; data © AAII, for personal reference</li></ul></div><div class="nb"><h3><i style="background:var(--p20)"></i>Auto update</h3><ul><li>Each trading day at <b>19:30 ET</b> (CNN value final)</li><li>Gaps are never filled; listed in <code>data/latest.json</code></li><li>All data in the <a id="repoLink2" href="https://github.com/">repository</a>; CSVs open in Excel</li></ul></div></div><div class="nrow"><div class="nt"><h3>Cross-check (2026-11-20 snapshot)</h3><table><thead><tr><th>Source</th><th class="n">20-day</th><th class="n">50-day</th></tr></thead><tbody><tr><td><b>This page</b></td><td class="n"><b>18.92%</b></td><td class="n"><b>42.71%</b></td></tr><tr><td>Bloomberg<span class="q">as quoted</span></td><td class="n">18.9%</td><td class="n">42.5%</td></tr><tr><td>2ndOcean<span class="q">div-adjusted</span></td><td class="n">19.4%</td><td class="n">42.9%</td></tr><tr><td>StockCharts<span class="q">div-adjusted</span></td><td class="n">~21%</td><td class="n">~43%</td></tr></tbody></table><p class="nfoot">Differences are within 1–3 stocks; dividend-adjusted sources run high.</p></div><div class="nt"><h3>Colour rules for the top figures</h3><div class="scroll"><table class="ctab"><thead><tr><th></th><th>Red</th><th>Orange</th><th>Normal</th><th>Green</th></tr></thead><tbody><tr><td><b>Participation</b></td><td><span class="tag red">&lt;20%</span></td><td><span class="tag orange">20–30%</span></td><td><span class="tag norm">30–80%</span></td><td><span class="tag green">&gt;80%</span></td></tr><tr><td><b>CNN</b></td><td><span class="tag red">0–24 Ext. fear</span></td><td><span class="tag orange">25–44 Fear</span></td><td><span class="tag norm">45–55 Neutral</span></td><td><span class="tag green">56–75 Greed</span><span class="tag dgreen">76+ Ext. greed</span></td></tr><tr><td><b>.VIX</b></td><td><span class="tag red">&gt;35</span></td><td><span class="tag orange">20–35</span></td><td><span class="tag norm">15–20</span></td><td><span class="tag green">&lt;15</span></td></tr></tbody></table></div><p class="nfoot">SPY / QQQ are not coloured; only the figure changes colour.</p></div></div></div></section>
 <footer id="foot"></footer>
 </main>
 <script>
@@ -215,6 +226,10 @@ const s0=Math.max(0,RAW.d.findIndex(d=>d>=cut));
 const D={};for(const k of ['d','spy','qqq','vix','b','cnn'])D[k]=RAW[k].slice(s0);
 const N=D.d.length,L=N-1,NS='http://www.w3.org/2000/svg';
 const p20=D.b.map(r=>r?r[0]/r[1]*100:null),p50=D.b.map(r=>r?r[2]/r[3]*100:null);
+const AV={bull:37.6,neut:30.9,bear:31.5,spr:6.1,sd:18.1};
+const aB=Array(N).fill(null),aN=Array(N).fill(null),aS=Array(N).fill(null),aP=Array(N).fill(null),aD=Array(N).fill(null);
+{let j=0;for(const [d,b,n,s] of (RAW.aaii||[])){while(j<N&&D.d[j]<d)j++;if(j>=N)break;if(d<D.d[0])continue;aB[j]=b;aN[j]=n;aS[j]=s;aP[j]=+(b-s).toFixed(1);aD[j]=d;}}
+let aaMode='ratio';
 let lang='zh';
 const WD={zh:['周日','周一','周二','周三','周四','周五','周六'],en:['Sun','Mon','Tue','Wed','Thu','Fri','Sat']};
 const dl=d=>{const w=WD[lang][new Date(d+'T12:00:00Z').getUTCDay()];return lang==='zh'?`${d}（${w}）`:`${d} (${w})`;};
@@ -232,13 +247,20 @@ const T={zh:{title:'市场宽度和情绪报告',asof:d=>`数据截至 <b>${dl(d
  ovCapMM:'区间归一化：每条线按当前可见区间内的最低–最高缩放到 0–100，只比形状和拐点是否同步，不比涨跌幅度。点按曲线显示的仍是原始数值。拖动平移，滚轮 / 双指缩放，双击或点「重置缩放」恢复。',
  pxCap:'美元原始收盘价（未归一化）：SPY 与 QQQ 价格相近，两条线共用左轴同一个美元刻度。点按曲线可看每天的收盘价；点图例可单独显示一条线。拖动平移，滚轮 / 双指缩放，双击或点「重置缩放」恢复。',
  brCap:'在曲线上移动或点按，可查看任意交易日的读数与“上方只数 / 分母”。虚线为 50% 半数线与 20% 弱势线；点图例可单独看一条线。拖动平移，滚轮 / 双指缩放，双击或点「重置缩放」恢复。',
+ aaT:'AAII 散户情绪调查 • 过去两年',aaR:'看多 / 中性 / 看空',aaS:'多空差',bull:'看多',neut:'中性',bear:'看空',spr:'多空差',
+ aaZ:{lo:'极度悲观',hi:'极度乐观'},aaAvg:'长期均值',
+ aaPill:{lo:'散户明显悲观（历史上偏逆向看多）',mid:'情绪在常态区间',hi:'散户明显乐观（历史上偏逆向看空）'},
+ aaHead:(b,n,s,p)=>`看多 <b>${b}%</b> · 中性 <b>${n}%</b> · 看空 <b>${s}%</b> · 多空差 <b>${p}</b>`,
+ aaMeta:d=>`${dl(d)}公布 · 每周四更新 · 长期均值：看多 37.6%、看空 31.5%、多空差 +6.1`,
+ aaCapR:'AAII 每周调查个人投资者对未来 6 个月股市的看法，每周四公布；图中画在公布日，周与周之间连线。虚线为 1987 年以来的长期均值（看多 37.6%、看空 31.5%）。常作逆向指标看极端值，不宜单独使用。点图例可隐藏一条线。',
+ aaCapS:'多空差 = 看多 − 看空。虚线为 1987 年以来均值 +6.1，底色标出偏离均值一个标准差（18.1）以外的区域：低于 −12.0 为极度悲观，高于 +24.2 为极度乐观。极端悲观在历史上常出现在阶段低点附近，但不是精确择时信号。',
  vxT:'.VIX 波动率指数 • 过去两年',vz:{z1:'平静',z2:'正常',z3:'升温',z4:'紧张',z5:'恐慌'},vxPill:{z1:'低于 15：市场平静（偏乐观）',z2:'15–20：正常波动',z3:'20–30：波动升温',z4:'30–35：高度紧张',z5:'高于 35：恐慌区'},
  vxMeta:(d,hi,hd,lo,ld)=>`${dl(d)}收盘 · 两年最高 ${hi}（${hd}）· 两年最低 ${lo}（${ld}）`,
  vxCap:'标普500 期权隐含的未来 30 天年化波动率，数值越高代表市场越紧张。底色分区：低于 15 平静、15–20 正常、20–30 升温、30–35 紧张、高于 35 恐慌。拖动平移，滚轮 / 双指缩放，双击或点「重置缩放」恢复。',
  fgCap:'0–24 极度恐慌 · 25–44 恐慌 · 45–55 中性 · 56–75 贪婪 · 76–100 极度贪婪。虚线为 25 / 50 / 75 分界；2026-03-12 源头缺数，曲线在该处断开。拖动平移，滚轮 / 双指缩放，双击或点「重置缩放」恢复。',
  latestPx:(n,v,c)=>`${n} 最新 <b>$${v}</b>（两年 ${c}）`,fgMeta:(d,hi,hd,hz,lo,ld,lz)=>`${dl(d)}最新 · 两年最高 ${hi}（${hd}，${hz}）· 两年最低 ${lo}（${ld}，${lz}）`,
  stT:k=>`${k}日参与度 • 两年区间`,stLatest:d=>`最新（${d.slice(5)}）`,stHi:'两年最高',stLo:'两年最低',stocks:'只',
- foot:(a,b,u)=>`数据范围 ${a} 至 ${b} · 每个交易日 19:30（美东）自动更新 · 最后更新 ${u} · 数据：Yahoo Finance、Wikipedia、CNN · 背景照片：Nicholas Cappello / <a href="https://unsplash.com/photos/close-up-photo-of-monitor-displaying-graph-Wb63zqJ5gnE">Unsplash</a>`},
+ foot:(a,b,u)=>`数据范围 ${a} 至 ${b} · 每个交易日 19:30（美东）自动更新 · 最后更新 ${u} · 数据：Yahoo Finance、Wikipedia、CNN、AAII · 背景照片：Nicholas Cappello / <a href="https://unsplash.com/photos/close-up-photo-of-monitor-displaying-graph-Wb63zqJ5gnE">Unsplash</a>`},
 en:{title:'Market Breadth & Sentiment Report',asof:d=>`Data as of <b>close ${dl(d)}</b>`,lede:'S&P 500 market breadth: the share of members closing above their own moving average. The lower it is, the more a rally (or sell-off) rests on a few stocks.',
  spyN:'SPY • S&P 500 ETF close',qqqN:'QQQ • Nasdaq-100 ETF close',vixN:'.VIX • Volatility index',b20N:'% above 20-day MA • short term',b50N:'% above 50-day MA • medium term',cnnN:'CNN Fear & Greed • sentiment',
  close:'close',rng2:'2-yr range',day:'1D',wk:'1W',pos:(p,c)=>`At ${p}% of 2-yr range • ${c} vs 2 yrs ago`,
@@ -253,13 +275,20 @@ en:{title:'Market Breadth & Sentiment Report',asof:d=>`Data as of <b>close ${dl(
  ovCapMM:'Range-normalized: each line is scaled to 0–100 by its min–max in the visible window, to compare shape and turning points, not the size of moves. Readouts show raw values. Drag to pan, wheel / pinch to zoom, double-click or Reset zoom to restore.',
  pxCap:'Raw US-dollar closes (not normalized): SPY and QQQ trade at similar prices and share one left-hand dollar axis. Tap for daily closes; click a legend chip to show one line. Drag to pan, wheel / pinch to zoom, double-click or Reset zoom to restore.',
  brCap:'Hover or tap to read any trading day, with the count / denominator. Dashed lines mark the 50% midline and the 20% weak line; click a legend chip to show one line. Drag to pan, wheel / pinch to zoom, double-click or Reset zoom to restore.',
+ aaT:'AAII investor sentiment survey • past two years',aaR:'Bull / Neutral / Bear',aaS:'Bull−bear spread',bull:'Bullish',neut:'Neutral',bear:'Bearish',spr:'Spread',
+ aaZ:{lo:'Extreme pessimism',hi:'Extreme optimism'},aaAvg:'Long-run avg',
+ aaPill:{lo:'Retail clearly pessimistic (historically a contrarian positive)',mid:'Sentiment within the normal range',hi:'Retail clearly optimistic (historically a contrarian negative)'},
+ aaHead:(b,n,s,p)=>`Bullish <b>${b}%</b> · Neutral <b>${n}%</b> · Bearish <b>${s}%</b> · Spread <b>${p}</b>`,
+ aaMeta:d=>`Released ${dl(d)} · updated every Thursday · long-run avg: bullish 37.6%, bearish 31.5%, spread +6.1`,
+ aaCapR:'AAII polls individual investors weekly on their 6-month stock outlook, published Thursdays; points sit on the release date and are joined week to week. Dashed lines are the averages since 1987 (bullish 37.6%, bearish 31.5%). Mostly read at extremes as a contrarian gauge, not on its own. Click a legend chip to hide a line.',
+ aaCapS:'Spread = bullish − bearish. Dashed line: average since 1987 (+6.1). Shading marks readings more than one standard deviation (18.1) from the mean: below −12.0 extreme pessimism, above +24.2 extreme optimism. Extreme pessimism has often come near interim lows, but it is not a timing signal.',
  vxT:'.VIX volatility index • past two years',vz:{z1:'Calm',z2:'Normal',z3:'Elevated',z4:'Stressed',z5:'Panic'},vxPill:{z1:'Below 15: calm (complacent)',z2:'15–20: normal',z3:'20–30: elevated',z4:'30–35: stressed',z5:'Above 35: panic zone'},
  vxMeta:(d,hi,hd,lo,ld)=>`Close ${dl(d)} · 2-yr high ${hi} (${hd}) · 2-yr low ${lo} (${ld})`,
  vxCap:'30-day implied volatility of S&P 500 options, annualized; higher means more stress. Shaded zones: below 15 calm, 15–20 normal, 20–30 elevated, 30–35 stressed, above 35 panic. Drag to pan, wheel / pinch to zoom, double-click or Reset zoom to restore.',
  fgCap:'0–24 extreme fear · 25–44 fear · 45–55 neutral · 56–75 greed · 76–100 extreme greed. Dashed lines at 25 / 50 / 75; 2026-03-12 is missing at source and the line breaks there. Drag to pan, wheel / pinch to zoom, double-click or Reset zoom to restore.',
  latestPx:(n,v,c)=>`${n} latest <b>$${v}</b> (2 yrs ${c})`,fgMeta:(d,hi,hd,hz,lo,ld,lz)=>`Latest ${dl(d)} · 2-yr high ${hi} (${hd}, ${hz}) · 2-yr low ${lo} (${ld}, ${lz})`,
  stT:k=>`${k}-day participation • 2-yr range`,stLatest:d=>`Latest (${d.slice(5)})`,stHi:'2-yr high',stLo:'2-yr low',stocks:'',
- foot:(a,b,u)=>`Data ${a} to ${b} · updated automatically 19:30 ET each trading day · last update ${u} · Sources: Yahoo Finance, Wikipedia, CNN · Background photo: Nicholas Cappello / <a href="https://unsplash.com/photos/close-up-photo-of-monitor-displaying-graph-Wb63zqJ5gnE">Unsplash</a>`}};
+ foot:(a,b,u)=>`Data ${a} to ${b} · updated automatically 19:30 ET each trading day · last update ${u} · Sources: Yahoo Finance, Wikipedia, CNN, AAII · Background photo: Nicholas Cappello / <a href="https://unsplash.com/photos/close-up-photo-of-monitor-displaying-graph-Wb63zqJ5gnE">Unsplash</a>`}};
 const t=k=>T[lang][k];
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const f2=v=>v==null?'—':v.toFixed(2);
@@ -306,6 +335,9 @@ function side(){
     return `<span><span class="sw" style="display:inline-block;background:var(--${k});margin-right:7px"></span>${t('latestPx')(k.toUpperCase(),f2(v),pct(c))}</span>`;}).join('');
   const ci=lastI(D.cnn),cv=D.cnn[ci],m=minmax(D.cnn),z=fgZ(cv);
   document.getElementById('fgHead').innerHTML=`<span class="v" style="color:var(--${cFg(cv)||'ink'})">${f2(cv)}<small> / 100</small></span><span class="pill ${cFg(cv)}" style="margin:0">${t('cnnPill')(z,t('zr')[z])}</span><span class="m">${t('fgMeta')(D.d[ci],f2(m.hi),D.d[m.hi_],t('zone')[fgZ(m.hi)],f2(m.lo),D.d[m.li],t('zone')[fgZ(m.lo)])}</span>`;
+  {let i=L;while(i>0&&aB[i]==null)i--;if(aB[i]!=null){const p=aP[i],z=p<AV.spr-AV.sd?'lo':p>AV.spr+AV.sd?'hi':'mid',cls=z==='lo'?'red':z==='hi'?'green':'';
+   document.getElementById('aaHead').innerHTML=`<span class="m" style="font-size:15px">${t('aaHead')(aB[i].toFixed(1),aN[i].toFixed(1),aS[i].toFixed(1),SER.spr.fmt(p))}</span><span class="pill ${cls}" style="margin:0">${t('aaPill')[z]}</span><span class="m" style="width:100%">${t('aaMeta')(aD[i])}</span>`;}
+   document.getElementById('aaCap').textContent=t(aaMode==='ratio'?'aaCapR':'aaCapS');}
   {const i=lastI(D.vix),v=D.vix[i],m=minmax(D.vix),z=v<15?'z1':v<20?'z2':v<30?'z3':v<35?'z4':'z5',cls=cVix(v);
    document.getElementById('vxHead').innerHTML=`<span class="v" style="color:var(--${cls||'ink'})">${f2(v)}</span><span class="pill ${cls}" style="margin:0">${t('vxPill')[z]}</span><span class="m">${t('vxMeta')(D.d[i],f2(m.hi),D.d[m.hi_],f2(m.lo),D.d[m.li])}</span>`;}
   for(const k of [20,50]){const a=k===20?p20:p50,i=lastI(a),m=minmax(a);
@@ -325,9 +357,10 @@ function baseWin(){const m=RANGES.find(r=>r[0]===range)[1];if(!m)return [0,L];co
 
 /* ---------- series ---------- */
 const SER={spy:{a:D.spy,c:'--spy',lab:()=>'SPY',fmt:v=>'$'+f2(v)},qqq:{a:D.qqq,c:'--qqq',lab:()=>'QQQ',fmt:v=>'$'+f2(v)},vix:{a:D.vix,c:'--vix',lab:()=>'.VIX',fmt:f2},
-  p20:{a:p20,c:'--p20',lab:()=>t('p20'),fmt:v=>v.toFixed(2)+'%'},p50:{a:p50,c:'--p50',lab:()=>t('p50'),fmt:v=>v.toFixed(2)+'%'},cnn:{a:D.cnn,c:'--cnn',lab:()=>t('cnn'),fmt:f2}};
+  p20:{a:p20,c:'--p20',lab:()=>t('p20'),fmt:v=>v.toFixed(2)+'%'},p50:{a:p50,c:'--p50',lab:()=>t('p50'),fmt:v=>v.toFixed(2)+'%'},cnn:{a:D.cnn,c:'--cnn',lab:()=>t('cnn'),fmt:f2},
+  bull:{a:aB,c:'--bull',lab:()=>t('bull'),fmt:v=>v.toFixed(1)+'%'},neut:{a:aN,c:'--neut',lab:()=>t('neut'),fmt:v=>v.toFixed(1)+'%'},bear:{a:aS,c:'--bear',lab:()=>t('bear'),fmt:v=>v.toFixed(1)+'%'},spr:{a:aP,c:'--spr',lab:()=>t('spr'),fmt:v=>(v>0?'+':'')+v.toFixed(1)}};
 const ovOn=new Set(['spy','p50','cnn']);let ovMode='base';
-const hidden={px:new Set(),br:new Set()};
+const hidden={px:new Set(),br:new Set(),aa:new Set()};
 function niceTicks(a,b,n){const span=b-a,st0=span/n,mag=10**Math.floor(Math.log10(st0)),st=[1,2,2.5,5,10].map(x=>x*mag).find(x=>x>=st0);const out=[];for(let v=Math.ceil(a/st)*st;v<=b+1e-9;v+=st)out.push(+v.toFixed(6));return out;}
 
 const charts={};
@@ -339,12 +372,16 @@ function lines(c,i0,i1){
       return {k,col:css(s.c),y:a.map(v=>v==null||base==null?null:tr(v)),raw:a,fmt:s.fmt,lab:s.lab(),end:v=>v.toFixed(1)};});
   if(c.id==='px')return ['spy','qqq'].filter(k=>!hidden.px.has(k)).map(k=>({k,col:css(SER[k].c),y:SER[k].a,raw:SER[k].a,fmt:SER[k].fmt,lab:SER[k].lab(),end:v=>'$'+f2(v)}));
   if(c.id==='br')return ['p20','p50'].filter(k=>!hidden.br.has(k)).map(k=>({k,col:css(SER[k].c),y:SER[k].a,raw:SER[k].a,fmt:SER[k].fmt,lab:SER[k].lab(),area:true,end:v=>v.toFixed(2)+'%'}));
+  if(c.id==='aa'){if(aaMode==='spread')return [{k:'spr',col:css('--spr'),y:aP,raw:aP,fmt:SER.spr.fmt,lab:t('spr'),sparse:true,area:false,end:SER.spr.fmt}];
+    return ['bull','neut','bear'].filter(k=>!hidden.aa.has(k)).map(k=>({k,col:css(SER[k].c),y:SER[k].a,raw:SER[k].a,fmt:SER[k].fmt,lab:SER[k].lab(),sparse:true,end:v=>v.toFixed(1)+'%'}));}
   if(c.id==='vx')return [{k:'vix',col:css('--vix'),y:D.vix,raw:D.vix,fmt:f2,lab:'.VIX',area:true,end:f2}];
   return [{k:'cnn',col:css('--cnn'),y:D.cnn,raw:D.cnn,fmt:f2,lab:t('cnn'),area:true,end:f2}];
 }
 function yDom(c,ls,i0,i1){
   if(c.id==='br'||c.id==='fg')return [0,100];
   if(c.id==='ov'&&ovMode==='mm')return [-4,104];
+  if(c.id==='aa'){let mn=0,mx=0;for(const s of ls)for(let i=Math.ceil(i0);i<=Math.floor(i1);i++){const v=s.y[i];if(v!=null){mn=Math.min(mn,v);mx=Math.max(mx,v);}}
+    if(aaMode==='ratio')return [0,Math.max(60,mx+6)];const a=Math.max(32,Math.abs(mn)*1.12,mx*1.12);return [-a,a];}
   if(c.id==='vx'){let mx=0;for(let i=Math.ceil(i0);i<=Math.floor(i1);i++)if(D.vix[i]!=null)mx=Math.max(mx,D.vix[i]);return [0,Math.max(40,mx*1.08)];}
   let mn=Infinity,mx=-Infinity;const lo=Math.ceil(i0),hi=Math.floor(i1);
   for(const s of ls)for(let i=lo;i<=hi;i++){const v=s.y[i];if(v!=null){mn=Math.min(mn,v);mx=Math.max(mx,v);}}
@@ -369,17 +406,21 @@ function draw(c){
       el('rect',{x:m.l,y:Y(b),width:pw,height:Y(a)-Y(b),fill:css(v),'fill-opacity':o},svg);
       if(!narrow&&Y(a)-Y(b)>16){const tx=el('text',{x:m.l+8,y:(Y(a)+Y(b))/2+4,'fill-opacity':.85},svg);tx.textContent=t('vz')[vzk((a+b)/2)];}}
     for(const v of [15,20,30,35])el('line',{x1:m.l,x2:m.l+pw,y1:Y(v),y2:Y(v),stroke:'rgba(255,255,255,.2)','stroke-dasharray':'4 5'},svg);}
+  if(c.id==='aa'&&aaMode==='spread'){const lo=AV.spr-AV.sd,hi=AV.spr+AV.sd;
+    el('rect',{x:m.l,y:Y(lo),width:pw,height:Y(y0)-Y(lo),fill:css('--red'),'fill-opacity':.1},svg);el('rect',{x:m.l,y:Y(y1),width:pw,height:Y(hi)-Y(y1),fill:css('--green'),'fill-opacity':.08},svg);
+    if(!narrow){let tx=el('text',{x:m.l+8,y:Y(y0)-8,'fill-opacity':.85},svg);tx.textContent=t('aaZ').lo;tx=el('text',{x:m.l+8,y:Y(y1)+16,'fill-opacity':.85},svg);tx.textContent=t('aaZ').hi;}}
   const ticks=c.id==='fg'?[0,25,50,75,100]:c.id==='br'?[0,20,40,60,80,100]:niceTicks(y0,y1,narrow?4:5);
   for(const v of ticks){if(v<y0-1e-9||v>y1+1e-9)continue;const dash=c.id==='fg'&&v%50!==0;
     el('line',{x1:m.l,x2:m.l+pw,y1:Y(v),y2:Y(v),stroke:dash?'rgba(255,255,255,.22)':'rgba(255,255,255,.06)',...(dash?{'stroke-dasharray':'4 5'}:{})},svg);
-    const tx=el('text',{x:m.l-8,y:Y(v)+4,'text-anchor':'end'},svg);tx.textContent=c.id==='br'?v+'%':c.id==='px'?'$'+v:v;}
-  const refs=c.id==='br'?[[50,t('halfL')],[20,t('weak')]]:c.id==='ov'&&ovMode==='base'?[[100,t('start100')]]:[];
-  for(const [v,lab] of refs){el('line',{x1:m.l,x2:m.l+pw,y1:Y(v),y2:Y(v),stroke:'rgba(255,255,255,.28)','stroke-dasharray':'5 5'},svg);
-    const tx=el('text',{x:m.l+8,y:Y(v)-5},svg);tx.textContent=lab;}
+    const tx=el('text',{x:m.l-8,y:Y(v)+4,'text-anchor':'end'},svg);tx.textContent=c.id==='br'||(c.id==='aa'&&aaMode==='ratio')?v+'%':c.id==='px'?'$'+v:c.id==='aa'&&v>0?'+'+v:v;}
+  const refs=c.id==='aa'?(aaMode==='spread'?[[AV.spr,`${t('aaAvg')} +6.1`],[0,'']]:[...(hidden.aa.has('bull')?[]:[[AV.bull,`${t('bull')} ${t('aaAvg')} 37.6%`]]),...(hidden.aa.has('bear')?[]:[[AV.bear,`${t('bear')} ${t('aaAvg')} 31.5%`,1]])]):c.id==='br'?[[50,t('halfL')],[20,t('weak')]]:c.id==='ov'&&ovMode==='base'?[[100,t('start100')]]:[];
+  for(const [v,lab,below] of refs){el('line',{x1:m.l,x2:m.l+pw,y1:Y(v),y2:Y(v),stroke:'rgba(255,255,255,.28)','stroke-dasharray':'5 5'},svg);
+    if(lab){const tx=el('text',{x:m.l+8,y:below?Y(v)+15:Y(v)-5,style:'paint-order:stroke;stroke:rgba(8,12,20,.85);stroke-width:4px;stroke-linejoin:round'},svg);tx.textContent=lab;}}
   const span=i1-i0,nt=narrow?3:6,stp=Math.max(1,Math.round(span/nt));
   for(let i=Math.ceil(i0);i<=Math.floor(i1);i+=stp){const xx=X(i),tx=el('text',{x:xx,y:H-9,'text-anchor':i===Math.ceil(i0)?'start':xx>m.l+pw-30?'end':'middle'},svg);tx.textContent=span>200?D.d[i].slice(0,7).replace('-','/'):D.d[i].slice(5);}
   const gl=el('g',{'clip-path':`url(#cp-${c.id})`},svg),lo=Math.max(0,Math.floor(i0)),hi=Math.min(L,Math.ceil(i1));
-  for(const s of ls){const segs=[];let cur=null;for(let i=lo;i<=hi;i++){const v=s.y[i];if(v==null){cur=null;continue;}if(!cur){cur=[];segs.push(cur);}cur.push([X(i),Y(v)]);}
+  for(const s of ls){const segs=[];let cur=null;for(let i=lo;i<=hi;i++){const v=s.y[i];if(v==null){if(!s.sparse)cur=null;continue;}if(!cur){cur=[];segs.push(cur);}cur.push([X(i),Y(v)]);}
+    if(s.sparse){let j=lo-1;while(j>=0&&s.y[j]==null)j--;if(j>=0&&segs[0])segs[0].unshift([X(j),Y(s.y[j])]);let k=hi+1;while(k<=L&&s.y[k]==null)k++;if(k<=L&&segs.length)segs[segs.length-1].push([X(k),Y(s.y[k])]);}
     if(s.area){const gid='g-'+c.id+'-'+s.k,lg=el('linearGradient',{id:gid,x1:0,y1:0,x2:0,y2:1},defs);
       el('stop',{offset:0,'stop-color':s.col,'stop-opacity':c.id==='br'?.16:.22},lg);el('stop',{offset:1,'stop-color':s.col,'stop-opacity':0},lg);
       for(const sg of segs){if(sg.length<2)continue;el('path',{d:'M'+sg.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join('L')+`L${sg[sg.length-1][0].toFixed(1)},${m.t+ph}L${sg[0][0].toFixed(1)},${m.t+ph}Z`,fill:`url(#${gid})`},gl);}}
@@ -400,10 +441,12 @@ function showTip(c,px,py){
   const g=c.g;if(!g)return;let i=Math.round(c.view[0]+(px-g.m.l)/g.pw*(c.view[1]-c.view[0]));
   i=Math.max(Math.ceil(c.view[0]),Math.min(Math.floor(c.view[1]),i));
   c.cross.setAttribute('x1',g.X(i));c.cross.setAttribute('x2',g.X(i));c.cross.setAttribute('visibility','visible');
-  g.ls.forEach((s,j)=>{const v=s.y[i],d=c.dots[j];if(v==null){d.setAttribute('visibility','hidden');return;}d.setAttribute('cx',g.X(i));d.setAttribute('cy',g.Y(v));d.setAttribute('visibility','visible');});
-  const sm=small(),rows=g.ls.map(s=>{const v=s.raw[i];let val=v==null?'—':s.fmt(v);if(s.k==='cnn'&&v!=null)val+=' · '+t('zone')[fgZ(v)];
+  const at=s=>{if(!s.sparse)return i;let j=i;while(j>=0&&s.y[j]==null)j--;return j;};
+  g.ls.forEach((s,j)=>{const ii=at(s),v=ii>=0?s.y[ii]:null,d=c.dots[j];if(v==null){d.setAttribute('visibility','hidden');return;}d.setAttribute('cx',g.X(ii));d.setAttribute('cy',g.Y(v));d.setAttribute('visibility','visible');});
+  const sm=small(),rows=g.ls.map(s=>{const ii=at(s),v=ii>=0?s.raw[ii]:null;let val=v==null?'—':s.fmt(v);if(s.k==='cnn'&&v!=null)val+=' · '+t('zone')[fgZ(v)];
     const lab=sm&&c.id==='ov'?SER[s.k].lab().replace(/参与度| participation/,'').replace(/指数| index/,''):s.lab;
     return `<span class="r"><span class="sw" style="background:${s.col}"></span>${lab}<b>${val}</b></span>`;});
+  if(c.id==='aa'){const ii=at(g.ls[0]||{sparse:true,y:aP});if(ii>=0&&aD[ii]){if(aaMode==='ratio')rows.push(`<span class="r">${t('spr')}<b>${SER.spr.fmt(aP[ii])}</b></span>`);rows.push(`<span class="r" style="color:var(--dim)">${lang==='zh'?'公布日':'Released'}<b style="color:var(--mute)">${aD[ii]}</b></span>`);}}
   if(c.id==='br'&&D.b[i]){const b=D.b[i];rows.push(`<span class="r">${lang==='zh'?'上方/分母':'count / n'}<b>${b[0]}/${b[1]} · ${b[2]}/${b[3]}</b></span>`);}
   const tip=c.tip;tip.className='tip'+(sm?' strip':'');tip.innerHTML=`<span class="d">${dl(D.d[i])}</span>`+rows.join('');tip.hidden=false;
   if(!sm){const W=c.fig.clientWidth,tw=tip.offsetWidth;let x=px+16;if(x+tw>W-6)x=px-tw-16;tip.style.left=Math.max(6,x)+'px';tip.style.top=Math.max(6,Math.min(py-24,c.fig.clientHeight-tip.offsetHeight-6))+'px';}
@@ -454,8 +497,9 @@ const chk=document.getElementById('ovChecks');
 for(const k of ['spy','qqq','vix','p20','p50','cnn']){const lb=document.createElement('label');lb.className='chip';const i=document.createElement('input');i.type='checkbox';i.checked=ovOn.has(k);i.id='ov-'+k;
   i.addEventListener('change',()=>{i.checked?ovOn.add(k):ovOn.delete(k);lb.classList.toggle('on',i.checked);draw(charts.ov);hideTip(charts.ov);});
   const sw=document.createElement('span');sw.className='sw';sw.style.background=`var(${SER[k].c})`;const tx=document.createElement('span');tx.dataset.ser=k;lb.append(i,sw,tx);lb.classList.toggle('on',i.checked);chk.appendChild(lb);}
+for(const b of document.querySelectorAll('[data-aa]'))b.addEventListener('click',()=>{aaMode=b.dataset.aa;labels();draw(charts.aa);hideTip(charts.aa);});
 for(const b of document.querySelectorAll('[data-mode]'))b.addEventListener('click',()=>{ovMode=b.dataset.mode;labels();draw(charts.ov);hideTip(charts.ov);});
-for(const [id,keys] of [['px',['spy','qqq']],['br',['p20','p50']]]){const lg=charts[id].p.querySelector('.legend');
+for(const [id,keys] of [['px',['spy','qqq']],['br',['p20','p50']],['aa',['bull','neut','bear']]]){const lg=charts[id].p.querySelector('.legend');
   for(const k of keys){const b=document.createElement('button');b.type='button';b.className='chip';b.dataset.ser=k;b.dataset.lg=id;
     b.addEventListener('click',()=>{const h=hidden[id];if(h.has(k))h.delete(k);else if(h.size<keys.length-1)h.add(k);labels();draw(charts[id]);hideTip(charts[id]);});lg.appendChild(b);}}
 
@@ -466,6 +510,8 @@ function labels(){
   for(const b of document.querySelectorAll('.rng button')){b.textContent=t(b.dataset.r);b.classList.toggle('on',b.dataset.r===range);}
   for(const c of Object.values(charts)){c.p.querySelector('.col').textContent=c.collapsed?t('exp'):t('col');c.resetB.textContent=t('reset');}
   for(const b of document.querySelectorAll('[data-mode]'))b.classList.toggle('on',b.dataset.mode===ovMode);
+  for(const b of document.querySelectorAll('[data-aa]'))b.classList.toggle('on',b.dataset.aa===aaMode);
+  charts.aa.p.querySelector('.legend').style.display=aaMode==='ratio'?'':'none';
   for(const s of document.querySelectorAll('[data-ser]')){const k=s.dataset.ser,name=k==='cnn'?t('cnn'):SER[k].lab();
     if(s.dataset.lg){s.innerHTML=`<span class="sw" style="background:var(${SER[k].c})"></span>${name}`;s.classList.toggle('off',hidden[s.dataset.lg].has(k));}else s.textContent=name;}
   cards();side();

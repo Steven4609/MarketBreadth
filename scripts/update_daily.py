@@ -46,6 +46,8 @@ F_BR_CSV = DATA / "breadth_history_2y.csv"
 F_BR_JSON = DATA / "breadth_history_2y.json"
 F_FG_CSV = DATA / "cnn_fear_greed_2y.csv"
 F_FG_JSON = DATA / "cnn_fear_greed_2y.json"
+F_AAII_CSV = DATA / "aaii.csv"
+F_AAII_JSON = DATA / "aaii.json"
 F_DASH = DATA / "dashboard_data.json"
 F_LATEST = DATA / "latest.json"
 
@@ -163,6 +165,44 @@ def update_cnn(axis: list[str], missing: list):
         missing.append(f"CNN：源头暂无 {axis[-1]} 的数据")
 
 
+# ---------------------------------------------------------------- AAII
+AAII_URL = "https://www.aaii.com/files/surveys/sentiment.xls"
+AAII_START = "2024-10-01"   # 公开仓库只保留看板需要的区间，不转存 AAII 的完整历史
+
+
+def aaii_source() -> list[tuple[str, float, float, float]]:
+    import xlrd
+    r = requests.get(AAII_URL, headers={**UA, "Referer": "https://www.aaii.com/sentimentsurvey/sent_results"}, timeout=60)
+    r.raise_for_status()
+    wb = xlrd.open_workbook(file_contents=r.content)
+    sh = wb.sheet_by_index(0)
+    out = []
+    for i in range(sh.nrows):
+        v = sh.row_values(i)
+        if isinstance(v[0], float) and v[0] > 30000 and all(isinstance(x, float) for x in v[1:4]):
+            d = xlrd.xldate_as_datetime(v[0], wb.datemode).date().isoformat()
+            out.append((d, round(v[1] * 100, 1), round(v[2] * 100, 1), round(v[3] * 100, 1)))
+    return sorted(out)
+
+
+def update_aaii(missing: list):
+    rows = json.loads(F_AAII_JSON.read_text())
+    last = rows[-1]["date"] if rows else AAII_START
+    try:
+        src = aaii_source()
+    except Exception as e:  # noqa: BLE001
+        missing.append(f"AAII：下载失败（{e}）")
+        return
+    new = [r for r in src if r[0] > last and r[0] >= AAII_START]
+    for d, b, n, s in new:
+        rows.append({"date": d, "bullish": b, "neutral": n, "bearish": s})
+        with F_AAII_CSV.open("a", newline="") as f:
+            csv.writer(f).writerow([d, b, n, s, round(b - s, 1)])
+    if new:
+        F_AAII_JSON.write_text(json.dumps(rows))
+    log(f"AAII：新增 {[r[0] for r in new]}")
+
+
 # ---------------------------------------------------------------- breadth
 def sp500() -> list[str]:
     r = requests.get("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies", headers=UA, timeout=30)
@@ -258,7 +298,8 @@ def build_outputs(missing: list):
     now = dt.datetime.now(NY).strftime("%Y-%m-%d %H:%M ET")
     D = {"d": axis, "spy": [px["SPY"][d] for d in axis], "qqq": [px["QQQ"].get(d) for d in axis],
          "vix": [px["^VIX"].get(d) for d in axis], "b": [br.get(d) for d in axis],
-         "cnn": [fg.get(d) for d in axis], "updated": now}
+         "cnn": [fg.get(d) for d in axis], "updated": now,
+         "aaii": [[r["date"], r["bullish"], r["neutral"], r["bearish"]] for r in json.loads(F_AAII_JSON.read_text())]}
     F_DASH.write_text(json.dumps(D, separators=(",", ":")))
     last = axis[-1]
     b = br.get(last)
@@ -292,6 +333,12 @@ def check_sources():
     except Exception as e:  # noqa: BLE001
         log(f"[检查] Wikipedia / 成分股失败：{e}")
         ok = False
+    try:
+        a = aaii_source()
+        log(f"[检查] AAII: {len(a)} 周，最后 {a[-1][0]} 看多 {a[-1][1]}% 看空 {a[-1][3]}%")
+    except Exception as e:  # noqa: BLE001
+        log(f"[检查] AAII 失败：{e}")
+        ok = False
     log("[检查] 结果：" + ("全部正常" if ok else "有数据源失败"))
     if not ok:
         sys.exit(1)
@@ -311,11 +358,12 @@ def main():
             log("纽约时间未到 19:15，今天的 CNN 最终值还没出，本次跳过（另一个定时会在 19:30 运行）")
             return
     missing: list[str] = []
-    srcs = [F_PRICES, F_FG_JSON, F_BR_JSON]
+    srcs = [F_PRICES, F_FG_JSON, F_BR_JSON, F_AAII_JSON]
     before = [p.read_bytes() for p in srcs]
     axis = update_prices(missing)
     update_cnn(axis, missing)
     update_breadth(axis, missing)
+    update_aaii(missing)
     if [p.read_bytes() for p in srcs] == before and F_DASH.exists() and "--rebuild" not in sys.argv:
         log("没有任何新数据（周末、休市日，或今天已更新过），不改动文件")
         if missing:
