@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#070b12">
-<title>美股参与度看板</title>
+<title>市场宽度报告</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -148,7 +148,7 @@ footer a{color:var(--mute)}
 <div class="bgimg" aria-hidden="true"></div><div class="bgveil" aria-hidden="true"></div>
 <main>
 <header>
-  <h1 data-i18n="title">美股参与度看板</h1>
+  <h1 data-i18n="title">市场宽度报告</h1>
   <span class="asof glass"><span class="dot"></span><span id="asof"></span></span>
   <span class="grow"></span>
   <button id="lang" class="btn" type="button">English</button>
@@ -208,7 +208,7 @@ const p20=D.b.map(r=>r?r[0]/r[1]*100:null),p50=D.b.map(r=>r?r[2]/r[3]*100:null);
 let lang='zh';
 const WD={zh:['周日','周一','周二','周三','周四','周五','周六'],en:['Sun','Mon','Tue','Wed','Thu','Fri','Sat']};
 const dl=d=>{const w=WD[lang][new Date(d+'T12:00:00Z').getUTCDay()];return lang==='zh'?`${d}（${w}）`:`${d} (${w})`;};
-const T={zh:{title:'美股参与度看板',asof:d=>`数据截至 <b>${dl(d)} 收盘</b>`,lede:'标普500 市场宽度：成分股收盘价站在自身均线上方的占比。参与度越低，说明上涨（或下跌）越集中在少数股票上。',
+const T={zh:{title:'市场宽度报告',asof:d=>`数据截至 <b>${dl(d)} 收盘</b>`,lede:'标普500 市场宽度：成分股收盘价站在自身均线上方的占比。参与度越低，说明上涨（或下跌）越集中在少数股票上。',
  spyN:'SPY • 标普500 ETF 收盘价',qqqN:'QQQ • 纳指100 ETF 收盘价',vixN:'.VIX • 波动率指数',b20N:'20日均线上方占比 • 短期',b50N:'50日均线上方占比 • 中期',cnnN:'CNN 恐慌贪婪指数 • 情绪',
  close:'收盘',rng2:'两年区间',day:'当日',wk:'一周',pos:(p,c)=>`位于两年区间 ${p}% 处 • 较两年起点 ${c}`,
  above:(a,n,k)=>`${a} / ${n} 只成分股在 ${k}日均线之上`,weak:'20% 弱势线',half:'50%',halfL:'50% 半数线',
@@ -226,7 +226,7 @@ const T={zh:{title:'美股参与度看板',asof:d=>`数据截至 <b>${dl(d)} 收
  latestPx:(n,v,c)=>`${n} 最新 <b>$${v}</b>（两年 ${c}）`,fgMeta:(d,hi,hd,hz,lo,ld,lz)=>`${dl(d)}最新 · 两年最高 ${hi}（${hd}，${hz}）· 两年最低 ${lo}（${ld}，${lz}）`,
  stT:k=>`${k}日参与度 • 两年区间`,stLatest:d=>`最新（${d.slice(5)}）`,stHi:'两年最高',stLo:'两年最低',stocks:'只',
  foot:(a,b,u)=>`数据范围 ${a} 至 ${b} · 每个交易日 19:30（美东）自动更新 · 最后更新 ${u} · 数据：Yahoo Finance、Wikipedia、CNN · 背景照片：Nicholas Cappello / <a href="https://unsplash.com/photos/close-up-photo-of-monitor-displaying-graph-Wb63zqJ5gnE">Unsplash</a>`},
-en:{title:'US Equity Participation Dashboard',asof:d=>`Data as of <b>close ${dl(d)}</b>`,lede:'S&P 500 market breadth: the share of members closing above their own moving average. The lower it is, the more a rally (or sell-off) rests on a few stocks.',
+en:{title:'Market Breadth Report',asof:d=>`Data as of <b>close ${dl(d)}</b>`,lede:'S&P 500 market breadth: the share of members closing above their own moving average. The lower it is, the more a rally (or sell-off) rests on a few stocks.',
  spyN:'SPY • S&P 500 ETF close',qqqN:'QQQ • Nasdaq-100 ETF close',vixN:'.VIX • Volatility index',b20N:'% above 20-day MA • short term',b50N:'% above 50-day MA • medium term',cnnN:'CNN Fear & Greed • sentiment',
  close:'close',rng2:'2-yr range',day:'1D',wk:'1W',pos:(p,c)=>`At ${p}% of 2-yr range • ${c} vs 2 yrs ago`,
  above:(a,n,k)=>`${a} / ${n} members above the ${k}-day MA`,weak:'20% weak line',half:'50%',halfL:'50% midline',
