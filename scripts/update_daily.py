@@ -26,6 +26,12 @@ import pandas as pd
 import requests
 import yfinance as yf
 
+import tempfile
+try:  # 给 yfinance 一个独立的缓存目录，避免缓存数据库被锁
+    yf.set_tz_cache_location(tempfile.mkdtemp(prefix="yf-cache-"))
+except Exception:  # noqa: BLE001
+    pass
+
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 DETAILS = DATA / "details"
@@ -71,8 +77,9 @@ def closes(df: pd.DataFrame, ticker: str) -> pd.Series:
 def download(tickers, **kw) -> pd.DataFrame:
     for attempt in range(3):
         try:
+            # threads=False：并发下载会让 yfinance 的本地缓存数据库报 "database is locked" 而丢票
             return yf.download(tickers, interval="1d", auto_adjust=False, progress=False,
-                               group_by="ticker", threads=True, **kw)
+                               group_by="ticker", threads=False, **kw)
         except Exception as e:  # noqa: BLE001
             log(f"  yfinance 出错（第 {attempt + 1} 次）：{e}")
             time.sleep(5 * (attempt + 1))
@@ -264,7 +271,36 @@ def build_outputs(missing: list):
         "missing": missing}, ensure_ascii=False, indent=1))
 
 
+def check_sources():
+    """只测试各数据源能否取到数，不写任何文件。"""
+    ok = True
+    df = download(["SPY", "QQQ", "^VIX"], period="5d")
+    for t in ["SPY", "QQQ", "^VIX"]:
+        s = closes(df, t)
+        log(f"[检查] Yahoo {t}: " + (f"最后 {s.index[-1]} = {s.iloc[-1]:.2f}" if not s.empty else "失败"))
+        ok &= not s.empty
+    src = cnn_source()
+    log(f"[检查] CNN: {len(src)} 点" + (f"，最后 {max(src)} = {src[max(src)]:.2f}" if src else ""))
+    ok &= bool(src)
+    try:
+        syms = sp500()
+        log(f"[检查] Wikipedia 名单: {len(syms)} 只")
+        df = download(syms[:100], period="3mo")
+        got = sum(not closes(df, s).empty for s in syms[:100])
+        log(f"[检查] Yahoo 成分股（前 100 只）: 取到 {got}/100")
+        ok &= got >= 90
+    except Exception as e:  # noqa: BLE001
+        log(f"[检查] Wikipedia / 成分股失败：{e}")
+        ok = False
+    log("[检查] 结果：" + ("全部正常" if ok else "有数据源失败"))
+    if not ok:
+        sys.exit(1)
+
+
 def main():
+    if "--check" in sys.argv:
+        check_sources()
+        return
     force = "--force" in sys.argv
     now = dt.datetime.now(NY)
     log(f"运行时间（纽约）：{now:%Y-%m-%d %H:%M}")

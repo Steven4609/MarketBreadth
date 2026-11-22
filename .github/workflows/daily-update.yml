@@ -14,6 +14,10 @@ on:
         description: "忽略 19:15 的时间限制，立即更新"
         type: boolean
         default: false
+      check:
+        description: "只检查数据源能否连通，不写任何数据"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -37,7 +41,7 @@ jobs:
         run: pip install yfinance pandas requests lxml
 
       - name: Fetch data and compute
-        run: python scripts/update_daily.py ${{ inputs.force && '--force' || '' }}
+        run: python scripts/update_daily.py ${{ inputs.force && '--force' || '' }} ${{ inputs.check && '--check' || '' }}
 
       - name: Save results to the repository
         run: |
