@@ -3,251 +3,335 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#070b12">
 <title>美股参与度看板</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-/* VOICE: a trading-desk market-internals monitor, calm and exact
-   IDEA: a terminal page: tape cards on top, four linked panels below
-   PICTURE: the four line charts themselves, over a faint candlestick screen
-   COLOUR and TYPE: deep green-black night / warm white day; muted red/orange for extremes; Noto Sans SC
-   LAYOUT: title row, 3x2 cards, four full-width chart panels, notes */
-:root{color-scheme:light dark;
---bg:light-dark(#f3f2ee,#0c1210);--ink:light-dark(#141a17,#e6ece8);--mute:light-dark(#5d6762,#93a19a);
---card:light-dark(rgba(255,255,255,.80),rgba(22,30,27,.78));--line:light-dark(rgba(20,26,23,.12),rgba(230,236,232,.12));
---grid:light-dark(rgba(20,26,23,.08),rgba(230,236,232,.08));
---red:light-dark(#b42318,#ee7b6f);--orange:light-dark(#b25a0c,#eea35f);--green:light-dark(#2e7d32,#74c27c);--dgreen:light-dark(#1b5e20,#45a54d);
---spy:light-dark(#2457c5,#6f9cf0);--qqq:light-dark(#7a3fc0,#b48cf0);--vix:light-dark(#8a5a12,#d9a54a);
---p20:light-dark(#e0731a,#f29a4a);--p50:light-dark(#0f8f84,#3cc4b6);--cnn:light-dark(#c0392b,#ef6a5c);
---btn:light-dark(rgba(20,26,23,.06),rgba(230,236,232,.08));--on:light-dark(#141a17,#e6ece8);--onink:light-dark(#fff,#0c1210)}
-:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+:root{color-scheme:dark;
+--bg:#070b12;--ink:#e9eef6;--soft:#c3ccd9;--mute:#8b97a9;--dim:#5d6878;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);
+--spy:#6ea8ff;--qqq:#b59cff;--vix:#ff7fb3;--p20:#f5a33b;--p50:#36c5c9;--cnn:#f2705d;
+--red:#f2705d;--orange:#f5a33b;--green:#4fc98b;--dgreen:#2fae70;
+--font:Inter,"PingFang SC","Microsoft YaHei","Noto Sans SC","Hiragino Sans GB",system-ui,sans-serif}
 *{box-sizing:border-box;min-width:0}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Noto Sans SC",system-ui,sans-serif;overflow-x:clip;font-variant-numeric:tabular-nums}
-#bg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.15}
-:root[data-theme=dark] #bg{opacity:.2}
-@media(prefers-color-scheme:dark){:root:not([data-theme=light]) #bg{opacity:.2}}
-#bgfade{position:fixed;inset:0;z-index:0;pointer-events:none;background:linear-gradient(180deg,transparent 0%,var(--bg) 85%)}
-main{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:24px max(4vw,14px) 48px}
-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
-h1{font-size:clamp(28px,4vw,40px);line-height:1.05;margin:0;font-weight:700}
-.sub{color:var(--mute);font-size:14px;margin:4px 0 18px}
-button{font:inherit;font-size:14px;color:var(--ink);background:var(--btn);border:1px solid var(--line);border-radius:8px;padding:6px 11px;cursor:pointer;min-height:36px}
-button:focus-visible{outline:2px solid var(--spy);outline-offset:2px}
-button.on{background:var(--on);color:var(--onink);border-color:var(--on)}
-.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:18px}
-.card{background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
-.card .k{font-size:14px;color:var(--mute)}
-.card .v{font-size:46px;line-height:1.1;font-weight:700;margin:6px 0 4px;white-space:nowrap}
-.card .s{font-size:14px;color:var(--mute)}
-.card .s b{font-weight:500}
-.panel{background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px}
-.ph{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.ph h2{font-size:18px;margin:0;font-weight:700}
-.ph .meta{font-size:13px;color:var(--mute);width:100%}
-.ctrl{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.ctrl .rng button{border-radius:0;margin-left:-1px}.ctrl .rng button:first-child{border-radius:8px 0 0 8px}.ctrl .rng button:last-child{border-radius:0 8px 8px 0}
-.opts{display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center;font-size:14px;margin:10px 0 2px}
-.opts label{display:flex;gap:6px;align-items:center;cursor:pointer;min-height:32px}
-.opts input{width:16px;height:16px}
-.sw{display:inline-block;width:14px;height:3px;border-radius:2px}
-.legend{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.legend button{display:flex;gap:6px;align-items:center;font-size:13px;min-height:32px}
-.legend button.off{opacity:.4}
-.fig{position:relative;height:300px;margin-top:8px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
-.fig svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.fig text{font:12px "Noto Sans SC",system-ui,sans-serif;fill:var(--mute)}
-.reset{position:absolute;top:4px;right:4px;z-index:3;font-size:13px;min-height:30px;padding:3px 9px;background:var(--card)}
-.tip{position:absolute;z-index:4;pointer-events:none;background:var(--card);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px;line-height:1.45;white-space:nowrap;box-shadow:0 4px 18px rgba(0,0,0,.15)}
-.tip.strip{left:0;right:0;top:0;white-space:normal;font-size:12px;padding:4px 8px;border-radius:6px;display:flex;flex-wrap:wrap;gap:2px 10px}
-.tip .d{font-weight:700}
+html{background:var(--bg)}
+body{margin:0;color:var(--ink);font:15px/1.55 var(--font);font-variant-numeric:tabular-nums;overflow-x:clip;-webkit-font-smoothing:antialiased}
+.bgimg{position:fixed;inset:0;z-index:0;background:url(bg-market.jpg) center/cover no-repeat;opacity:.55;filter:saturate(.95) blur(1.5px);transform:scale(1.02)}
+.bgveil{position:fixed;inset:0;z-index:0;background:radial-gradient(120% 80% at 70% 10%,rgba(7,11,18,.15),rgba(7,11,18,.7) 75%),linear-gradient(180deg,rgba(7,11,18,.3),rgba(7,11,18,.82))}
+main{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:22px max(3.5vw,14px) 40px}
+
+/* ---------- liquid glass ---------- */
+.glass{position:relative;isolation:isolate;border-radius:20px;
+ background:linear-gradient(150deg,rgba(255,255,255,.085) 0%,rgba(255,255,255,.025) 42%,rgba(255,255,255,.045) 100%);
+ backdrop-filter:blur(22px) saturate(175%) brightness(1.05);-webkit-backdrop-filter:blur(22px) saturate(175%) brightness(1.05);
+ border:1px solid rgba(255,255,255,.07);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -1px 0 rgba(255,255,255,.04),0 18px 50px -12px rgba(0,0,0,.55)}
+.glass::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;pointer-events:none;z-index:-1;
+ background:linear-gradient(140deg,rgba(255,255,255,.42),rgba(255,255,255,.06) 28%,rgba(255,255,255,0) 55%,rgba(255,255,255,.16) 100%);
+ -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+.glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;opacity:var(--glow,0);transition:opacity .35s;
+ background:radial-gradient(420px circle at var(--mx,30%) var(--my,0%),rgba(255,255,255,.09),transparent 60%)}
+.glass:hover{--glow:1}
+@media(prefers-reduced-motion:reduce){.glass::after{transition:none}}
+
+/* ---------- header ---------- */
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1{font-size:clamp(24px,3.2vw,30px);line-height:1.1;margin:0;font-weight:800;letter-spacing:.01em}
+.asof{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;font-size:14px;color:var(--soft)}
+.asof b{color:var(--ink);font-weight:700}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--p50);box-shadow:0 0 0 3px rgba(54,197,201,.18)}
+header .grow{flex:1}
+.lede{color:var(--soft);font-size:14.5px;margin:10px 0 20px}
+button{font:inherit;color:var(--ink);cursor:pointer}
+.btn{border:1px solid var(--line2);background:rgba(255,255,255,.05);border-radius:999px;padding:7px 16px;font-size:14px;font-weight:600;min-height:36px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:background .2s}
+.btn:hover{background:rgba(255,255,255,.1)}
+.btn.on{background:#eef2f8;color:#0b1220;border-color:#eef2f8}
+.btn:focus-visible,.chip:focus-within{outline:2px solid var(--spy);outline-offset:2px}
+
+/* ---------- KPI cards ---------- */
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-bottom:22px}
+.card{padding:20px 24px 18px}
+.ch{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15.5px;color:var(--soft)}
+.ch i{width:10px;height:10px;border-radius:3px;flex:none}
+.big{font-size:54px;line-height:1.08;font-weight:800;letter-spacing:-.01em;margin:10px 0 2px;white-space:nowrap}
+.big small{font-size:24px;font-weight:600;color:var(--mute);margin-left:4px}
+.big.red{color:var(--red)}.big.orange{color:var(--orange)}.big.green{color:var(--green)}.big.dgreen{color:var(--dgreen)}
+.chg{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
+.chg span{font-size:13px;font-weight:600;padding:2px 9px;border-radius:999px;background:rgba(255,255,255,.06)}
+.chg .up{color:var(--green)}.chg .dn{color:var(--red)}
+.sub{color:var(--mute);font-size:14px}
+.bar{position:relative;height:7px;border-radius:99px;background:rgba(255,255,255,.08);margin:14px 0 8px}
+.bar>span{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
+.bar>em{position:absolute;top:-3px;width:1px;height:13px;background:rgba(255,255,255,.35)}
+.bar>em b{position:absolute;top:14px;left:50%;transform:translateX(-50%);font:500 11.5px/1 var(--font);color:var(--mute);white-space:nowrap;font-style:normal}
+.bar.ticks{margin-bottom:26px}
+.pill{display:inline-block;margin-top:6px;padding:5px 13px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--soft);background:rgba(255,255,255,.07)}
+.pill.red{color:#ff8f7f;background:rgba(242,112,93,.14)}.pill.orange{color:#ffbf6b;background:rgba(245,163,59,.13)}
+.pill.green{color:#7fe0ad;background:rgba(79,201,139,.13)}.pill.dgreen{color:#62d199;background:rgba(47,174,112,.16)}
+
+/* ---------- chart panels ---------- */
+.panel{padding:20px 24px 16px;margin-bottom:20px}
+.ph{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ph h2{font-size:19px;font-weight:800;margin:0 6px 0 0}
+.ph .grow{flex:1}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;border:1px solid var(--line2);background:rgba(255,255,255,.04);font-size:14px;cursor:pointer;min-height:36px;user-select:none}
+.chip.on{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.28);font-weight:700}
+.chip.off{opacity:.45}
+.chip input{width:16px;height:16px;margin:0;accent-color:#5fb3ff}
+.sw{width:9px;height:9px;border-radius:3px;flex:none}
+.row2{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0 2px}
+.latest{display:flex;gap:6px 22px;flex-wrap:wrap;font-size:14.5px;color:var(--soft);margin:12px 0 2px}
+.latest b{color:var(--ink);font-weight:700}
+.fghead{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;margin:12px 0 2px}
+.fghead .v{font-size:34px;font-weight:800;line-height:1}.fghead .v small{font-size:18px;color:var(--mute);font-weight:600}
+.fghead .m{font-size:14px;color:var(--soft)}
+.fig{position:relative;height:300px;margin-top:12px;border-radius:14px;border:1px solid var(--line);background:rgba(8,12,20,.45);touch-action:pan-y;user-select:none;-webkit-user-select:none;overflow:hidden}
+.fig svg{position:absolute;inset:0;width:100%;height:100%}
+.fig text{font:12px var(--font);fill:var(--mute)}
+.cap{color:var(--mute);font-size:13.5px;margin:10px 2px 0;line-height:1.6}
+.reset{position:absolute;top:8px;right:8px;z-index:3;font-size:13px;min-height:30px;padding:4px 12px}
+.tip{position:absolute;z-index:4;pointer-events:none;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.55;white-space:nowrap;
+ background:rgba(18,24,36,.78);backdrop-filter:blur(14px) saturate(160%);-webkit-backdrop-filter:blur(14px) saturate(160%);border:1px solid var(--line2);box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.tip .d{font-weight:700;color:var(--ink)}
+.tip .r{display:flex;align-items:center;gap:6px;color:var(--soft)}.tip .r b{color:var(--ink);margin-left:auto;padding-left:10px}
+.tip.strip{left:0;right:0;top:0;border-radius:12px 12px 0 0;white-space:normal;font-size:12px;padding:5px 10px;display:flex;flex-wrap:wrap;gap:2px 12px}
+.tip.strip .r b{margin-left:4px;padding:0}
 .body.hide{display:none}
-.notes{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 22px;font-size:15px}
-.notes h2{font-size:20px;margin:0 0 8px}.notes h3{font-size:16px;margin:16px 0 4px}
-.notes p,.notes li{max-width:78ch;color:var(--ink)}.notes ul{padding-left:20px;margin:4px 0}
-.notes table{border-collapse:collapse;font-size:14px;margin:6px 0;width:100%}
-.notes th,.notes td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
-.scroll{overflow-x:auto}
-.c-red{color:var(--red)}.c-orange{color:var(--orange)}.c-green{color:var(--green)}.c-dgreen{color:var(--dgreen)}
-footer{color:var(--mute);font-size:13px;margin-top:18px}
-[data-l=en]{display:none}
-html[lang=en] [data-l=en]{display:revert}html[lang=en] [data-l=zh]{display:none}
-@media(max-width:900px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:640px){.cards{grid-template-columns:minmax(0,1fr)}.card .v{font-size:40px}.fig{height:370px}.notes{padding:14px}}
+
+/* ---------- stats & notes ---------- */
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-bottom:20px}
+.stat{padding:18px 24px}
+.stat table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14.5px}
+.stat td{padding:5px 0;color:var(--soft)}.stat td.n{text-align:right;font-weight:700;color:var(--ink)}.stat td.dt{text-align:right;color:var(--dim);width:40%}
+.notes{padding:22px 26px;font-size:14.5px;line-height:1.75;color:var(--soft)}
+.notes h2{font-size:18px;color:var(--ink);margin:0 0 8px;font-weight:800}
+.notes p{margin:8px 0}.notes b{color:var(--ink)}
+.notes .r{color:var(--red)}.notes .o{color:var(--orange)}.notes .g{color:var(--green)}.notes .dg{color:var(--dgreen)}
+.notes a{color:var(--spy)}
+footer{color:var(--dim);font-size:12.5px;text-align:center;margin-top:20px}
+footer a{color:var(--mute)}
+[data-l=en]{display:none}html[lang=en] [data-l=en]{display:block}html[lang=en] [data-l=zh]{display:none}
+
+@media(max-width:980px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){
+ .cards,.stats{grid-template-columns:minmax(0,1fr)}
+ .big{font-size:42px}.card,.panel,.stat{padding:16px 16px 14px}.notes{padding:16px}
+ .fig{height:370px}.ph h2{font-size:17px;width:100%}.ph .grow{display:none}
+ .btn{padding:6px 12px;font-size:13px}.chip{padding:6px 11px;font-size:13px}
+}
 </style>
 </head>
 <body>
-<svg id="bg" aria-hidden="true"></svg><div id="bgfade"></div>
+<div class="bgimg" aria-hidden="true"></div><div class="bgveil" aria-hidden="true"></div>
 <main>
 <header>
   <h1 data-i18n="title">美股参与度看板</h1>
-  <button id="lang" type="button">English</button>
+  <span class="asof glass"><span class="dot"></span><span id="asof"></span></span>
+  <span class="grow"></span>
+  <button id="lang" class="btn" type="button">English</button>
 </header>
-<p class="sub" data-i18n="sub"></p>
+<p class="lede" data-i18n="lede"></p>
 
 <section class="cards" id="cards"></section>
 
-<section class="panel" data-c="ov">
-  <div class="ph"><h2 data-i18n="ovT">叠加对比 · 归一化走势</h2><div class="ctrl"><span class="rng"></span><button class="col" type="button"></button></div></div>
+<section class="panel glass" data-c="ov">
+  <div class="ph"><h2 data-i18n="ovT"></h2><span class="grow"></span><div class="seg rng"></div><button class="btn col" type="button"></button></div>
   <div class="body">
-    <div class="opts" id="ovChecks"></div>
-    <div class="opts"><span data-i18n="mode">模式：</span><span class="ctrl"><button type="button" data-mode="base" data-i18n="mBase">起点=100</button><button type="button" data-mode="mm" data-i18n="mMM">区间归一化</button></span></div>
+    <div class="row2"><div class="chips" id="ovChecks"></div><div class="seg"><button class="btn" type="button" data-mode="base" data-i18n="mBase"></button><button class="btn" type="button" data-mode="mm" data-i18n="mMM"></button></div></div>
     <div class="fig"></div>
+    <p class="cap" id="ovCap"></p>
   </div>
 </section>
 
-<section class="panel" data-c="px">
-  <div class="ph"><h2 data-i18n="pxT">SPY / QQQ 行情 · 过去两年</h2><div class="ctrl"><span class="rng"></span><button class="col" type="button"></button></div></div>
-  <div class="body"><div class="legend"></div><div class="fig"></div></div>
+<section class="panel glass" data-c="px">
+  <div class="ph"><h2 data-i18n="pxT"></h2><div class="chips legend"></div><span class="grow"></span><div class="seg rng"></div><button class="btn col" type="button"></button></div>
+  <div class="body">
+    <div class="latest" id="pxLatest"></div>
+    <div class="fig"></div>
+    <p class="cap" data-i18n="pxCap"></p>
+  </div>
 </section>
 
-<section class="panel" data-c="br">
-  <div class="ph"><h2 data-i18n="brT">参与度 · 过去两年</h2><div class="ctrl"><span class="rng"></span><button class="col" type="button"></button></div></div>
-  <div class="body"><div class="legend"></div><div class="fig"></div></div>
+<section class="panel glass" data-c="br">
+  <div class="ph"><h2 data-i18n="brT"></h2><div class="chips legend"></div><span class="grow"></span><div class="seg rng"></div><button class="btn col" type="button"></button></div>
+  <div class="body">
+    <div class="fig"></div>
+    <p class="cap" data-i18n="brCap"></p>
+  </div>
 </section>
 
-<section class="panel" data-c="fg">
-  <div class="ph"><h2 data-i18n="fgT">CNN 恐慌贪婪指数 · 过去两年</h2><div class="ctrl"><span class="rng"></span><button class="col" type="button"></button></div><div class="meta" id="fgMeta"></div></div>
-  <div class="body"><div class="fig"></div></div>
+<section class="panel glass" data-c="fg">
+  <div class="ph"><h2 data-i18n="fgT"></h2><span class="grow"></span><div class="seg rng"></div><button class="btn col" type="button"></button></div>
+  <div class="body">
+    <div class="fghead" id="fgHead"></div>
+    <div class="fig"></div>
+    <p class="cap" data-i18n="fgCap"></p>
+  </div>
 </section>
 
-<section class="notes">
+<section class="stats"><div class="stat glass" id="st20"></div><div class="stat glass" id="st50"></div></section>
+
+<section class="notes glass">
 <div data-l="zh">
 <h2>口径与数据说明</h2>
-<h3>参与度定义</h3>
-<p>标普 500 成分股中，收盘价<b>严格高于</b>其自身 20 日 / 50 日简单移动平均线（含当日收盘）的股票占比。分母只计历史足够长的票（20 日线需满 20 根 K 线，50 日线需满 50 根）。成分股为 2026-11-20 当日 Wikipedia 名单（503 只）往回计算，存在<b>幸存者偏差</b>，历史读数仅供参考。</p>
-<h3>价格口径</h3>
-<p>Yahoo Finance 原始收盘价（只复权拆股、不复权分红），与 Bloomberg / TradingView 同口径。全部卡片与图表使用同一口径。</p>
-<h3>口径交叉核对（2026-11-20 快照）</h3>
-<div class="scroll"><table><thead><tr><th>来源</th><th>20日</th><th>50日</th><th>说明</th></tr></thead><tbody>
-<tr><td>本看板（503 只全部拉取成功）</td><td>18.92%（95/502）</td><td>42.71%（214/501）</td><td>Yahoo 原始 Close</td></tr>
-<tr><td>Bloomberg（博主经 X 帖引用）</td><td>18.9%</td><td>42.5%</td><td>无公开接口，仅作代表</td></tr>
-<tr><td>2ndOcean</td><td>19.4%</td><td>42.9%</td><td>分红复权，系统性偏高</td></tr>
-<tr><td>StockCharts</td><td>约 21%</td><td>约 43%</td><td>分红复权</td></tr>
-</tbody></table></div>
-<p>（第三方数值引自建站指南，本次未重新核验。）</p>
-<h3>覆盖与缺失</h3>
-<ul>
-<li>参与度：自 2024-11-22 起每个交易日一条，页面显示最近两年。分母 = 当天有收盘价且历史够长的成分股数，每天不同，点按曲线可看到当天的“上方只数/分母”。上市不足 20 / 50 天的票不计入对应分母；当天 Yahoo 没有收盘价的票不计入（每天的逐只明细保存在 data/details/）。</li>
-<li>CNN 恐慌贪婪：<b>缺 2026-03-12</b>（CNN 官方与 GitHub 数据集均从 3/11 跳到 3/13，源头漏数），未插值，图上该处断线。来源：CNN 官方端点；取不到时用 GitHub whit3rabbit/fear-greed-data（每日从同一端点重建）。</li>
-<li>.VIX：Yahoo 序列在 2026-05-25（阵亡将士纪念日）与 2026-09-07（劳动节）休市日仍有值，已排除，以 SPY 交易日为时间轴。</li>
-<li>所有曲线按日期对齐；缺失日期该线断开，不补数。</li>
-</ul>
-<h3>叠加图</h3>
-<p>“起点=100”：每条线以当前可见窗口首个交易日为基准，纵轴为相对起点涨跌 %。“区间归一化”：每条线按可见窗口内的最低–最高缩放到 0–100，只看形状与拐点。点按读数显示原始数值。</p>
-<h3>顶部数字变色规则</h3>
-<div class="scroll"><table><thead><tr><th>指标</th><th>红</th><th>橙</th><th>正常</th><th>绿</th></tr></thead><tbody>
-<tr><td>参与度</td><td class="c-red">&lt;20%</td><td class="c-orange">20–30%</td><td>30–80%</td><td class="c-green">&gt;80%</td></tr>
-<tr><td>CNN</td><td class="c-red">0–24 极度恐慌</td><td class="c-orange">25–44 恐慌</td><td>45–55 中性</td><td><span class="c-green">56–75 贪婪</span>；<span class="c-dgreen">76–100 极度贪婪</span></td></tr>
-<tr><td>.VIX</td><td class="c-red">&gt;35</td><td class="c-orange">20–35</td><td>15–20</td><td class="c-green">&lt;15</td></tr>
-</tbody></table></div>
-<p>SPY / QQQ 不变色。背景为装饰性 K 线纹理（程序生成，非真实行情）。</p>
-<h3>数据文件</h3><p>全部数据在本仓库的 <a href="https://github.com/" id="repoLink">data 文件夹</a>：CSV 可直接用 Excel 打开。<code>latest.json</code> 记录最近一次更新的日期与缺失说明。</p>
+<p><b>定义：</b>标普500成分股中，收盘价严格大于其自身 20 日 / 50 日简单移动平均线（均线含当日收盘价）的股票占比。分母只计历史足够长（满 20 / 50 根 K 线）且当天有收盘价的成分股，每天略有不同，点按曲线可看到当天的“上方只数 / 分母”。</p>
+<p><b>价格口径：</b>Yahoo Finance 原始收盘价（只复权拆股、不复权分红），与 Bloomberg / TradingView 的价格口径一致；分红复权的读数会系统性偏高，不采用。</p>
+<p><b>样本：</b>成分股名单取自 Wikipedia 当日名单（503 只）往回计算，存在幸存者偏差，历史读数仅供参考。每天的逐只明细（收盘价、SMA20、SMA50、是否在上方）保存在数据仓库的 <code>data/details/</code>。</p>
+<p><b>交叉核对（2026-11-20 快照）：</b>本页 20 日 18.92%（95/502）、50 日 42.71%（214/501）；Bloomberg 口径（博主引用）18.9% / 42.5%；2ndOcean（分红复权口径）19.4% / 42.9%；StockCharts（分红复权）约 21% / 43%。各家差异在 1–3 只股票的计数口径之内。</p>
+<p><b>CNN 恐慌贪婪指数：</b>0–100 分，分区为 0–24 极度恐慌、25–44 恐慌、45–55 中性、56–75 贪婪、76–100 极度贪婪。数据来自 CNN 官方 dataviz 端点；取不到时改用 GitHub 数据集 whit3rabbit/fear-greed-data（由同一 CNN 端点每日重建）。<b>缺 2026-03-12 一天</b>（两个来源都从 3/11 跳到 3/13，源头漏数），未插值，图上该处断线。</p>
+<p><b>叠加对比图：</b>SPY、QQQ、.VIX 为 Yahoo Finance 原始收盘价，与参与度同一交易日时间轴；.VIX 在休市日（2026-05-25、2026-09-07）的读数不在时间轴上，未纳入。因各线数量级不同，图中一律归一化后叠加：“起点=100”按相对涨跌比幅度，“区间归一化”按当前可见区间最低–最高缩放、只比形状与拐点；点按读数显示的仍是原始数值。</p>
+<p><b>顶部数字极值变色：</b>只给参与度、CNN 指数、.VIX 的最新数字变色（SPY / QQQ 不变色），分档如下——参与度：低于 20% 为<span class="r">红色</span>（洗盘区）、20–30% 为<span class="o">橙色</span>（偏低）、30–80% 为正常色、高于 80% 为<span class="g">绿色</span>（极高）；CNN：0–24 <span class="r">红色</span>、25–44 <span class="o">橙色</span>、45–55 正常色、56–75 <span class="g">绿色</span>、76–100 <span class="dg">深绿色</span>；.VIX：高于 35 <span class="r">红色</span>、20–35 <span class="o">橙色</span>、15–20 正常色、低于 15 <span class="g">绿色</span>。</p>
+<p><b>更新：</b>每个交易日美东 19:30 自动取数（此时 CNN 当天最终值已定格）。取不到的数据不插值、不补数，写进 <code>data/latest.json</code> 的缺失说明。全部数据见 <a id="repoLink" href="https://github.com/">数据仓库</a>，CSV 可直接用 Excel 打开。</p>
 </div>
 <div data-l="en">
 <h2>Methodology &amp; data notes</h2>
-<h3>Participation</h3>
-<p>Share of S&amp;P 500 members whose close is <b>strictly above</b> their own 20-day / 50-day simple moving average (including the day's close). Only stocks with enough history count in the denominator (20 bars for the 20-day, 50 for the 50-day). Membership is the 2026-11-20 Wikipedia list (503 tickers) applied backwards, so history carries <b>survivorship bias</b> and is indicative only.</p>
-<h3>Price basis</h3>
-<p>Yahoo Finance raw close (split-adjusted, not dividend-adjusted), the same basis as Bloomberg / TradingView. Every card and chart uses this one basis.</p>
-<h3>Basis cross-check (snapshot of 2026-11-20)</h3>
-<div class="scroll"><table><thead><tr><th>Source</th><th>20-day</th><th>50-day</th><th>Note</th></tr></thead><tbody>
-<tr><td>This dashboard (all 503 fetched)</td><td>18.92% (95/502)</td><td>42.71% (214/501)</td><td>Yahoo raw Close</td></tr>
-<tr><td>Bloomberg (quoted via X post)</td><td>18.9%</td><td>42.5%</td><td>No public API; reference only</td></tr>
-<tr><td>2ndOcean</td><td>19.4%</td><td>42.9%</td><td>Dividend-adjusted, biased high</td></tr>
-<tr><td>StockCharts</td><td>~21%</td><td>~43%</td><td>Dividend-adjusted</td></tr>
-</tbody></table></div>
-<p>(Third-party figures are taken from the build guide and were not re-verified this time.)</p>
-<h3>Coverage &amp; gaps</h3>
-<ul>
-<li>Participation: one row per trading day since 2024-11-22; the page shows the latest two years. Denominator = members with a close that day and enough history, so it varies; tap the chart to see that day's count/denominator. Stocks listed under 20 / 50 days are excluded from that denominator; stocks with no Yahoo close that day are excluded (per-stock detail is saved in data/details/).</li>
-<li>CNN Fear &amp; Greed: <b>2026-03-12 is missing</b> at source (both CNN's endpoint and the GitHub dataset jump from 3/11 to 3/13); not interpolated, the line breaks there. Source: CNN's endpoint, falling back to GitHub whit3rabbit/fear-greed-data (rebuilt daily from the same endpoint).</li>
-<li>.VIX: Yahoo has values on market holidays 2026-05-25 (Memorial Day) and 2026-09-07 (Labor Day); excluded, SPY trading days are the time axis.</li>
-<li>All lines align by date; a missing date breaks the line, nothing is filled in.</li>
-</ul>
-<h3>Overlay chart</h3>
-<p>"Start = 100": each line is based on the first trading day of the visible window; the axis shows % change from that start. "Range-normalized": each line is scaled to 0–100 by its min–max in the visible window, to compare shape and turning points only. Readouts show raw values.</p>
-<h3>Colour rules for the top figures</h3>
-<div class="scroll"><table><thead><tr><th>Metric</th><th>Red</th><th>Orange</th><th>Normal</th><th>Green</th></tr></thead><tbody>
-<tr><td>Participation</td><td class="c-red">&lt;20%</td><td class="c-orange">20–30%</td><td>30–80%</td><td class="c-green">&gt;80%</td></tr>
-<tr><td>CNN</td><td class="c-red">0–24 Extreme fear</td><td class="c-orange">25–44 Fear</td><td>45–55 Neutral</td><td><span class="c-green">56–75 Greed</span>; <span class="c-dgreen">76–100 Extreme greed</span></td></tr>
-<tr><td>.VIX</td><td class="c-red">&gt;35</td><td class="c-orange">20–35</td><td>15–20</td><td class="c-green">&lt;15</td></tr>
-</tbody></table></div>
-<p>SPY / QQQ are not coloured. The background is a decorative, program-generated candlestick texture, not real market data.</p>
-<h3>Data files</h3><p>All data lives in this repository's <a href="https://github.com/" id="repoLink2">data folder</a>; the CSVs open directly in Excel. <code>latest.json</code> records the latest update date and any gaps.</p>
+<p><b>Definition:</b> share of S&amp;P 500 members whose close is strictly above their own 20-day / 50-day simple moving average (including the day's close). The denominator counts only members with enough history (20 / 50 bars) and a close that day, so it varies slightly; tap a chart to see that day's count / denominator.</p>
+<p><b>Price basis:</b> Yahoo Finance raw close (split-adjusted, not dividend-adjusted), the same basis as Bloomberg / TradingView. Dividend-adjusted readings run systematically higher and are not used.</p>
+<p><b>Sample:</b> the day's Wikipedia membership list (503 tickers) applied backwards, so history carries survivorship bias and is indicative only. Per-stock detail for each day (close, SMA20, SMA50, above or not) is kept in the repository under <code>data/details/</code>.</p>
+<p><b>Cross-check (snapshot of 2026-11-20):</b> this page 18.92% (95/502) and 42.71% (214/501); Bloomberg basis (as quoted) 18.9% / 42.5%; 2ndOcean (dividend-adjusted) 19.4% / 42.9%; StockCharts (dividend-adjusted) ~21% / 43%. Differences are within 1–3 stocks.</p>
+<p><b>CNN Fear &amp; Greed:</b> 0–100; zones 0–24 extreme fear, 25–44 fear, 45–55 neutral, 56–75 greed, 76–100 extreme greed. Source: CNN's dataviz endpoint, falling back to GitHub whit3rabbit/fear-greed-data (rebuilt daily from the same endpoint). <b>2026-03-12 is missing</b> at source; not interpolated, the line breaks there.</p>
+<p><b>Overlay chart:</b> SPY, QQQ and .VIX are Yahoo raw closes on the same trading-day axis as participation; .VIX values on market holidays (2026-05-25, 2026-09-07) are excluded. Lines are normalized before overlaying: "Start = 100" compares the size of moves; "Range-normalized" scales each line to its min–max in the visible window to compare shape and turning points. Readouts show raw values.</p>
+<p><b>Colour of the top figures:</b> only participation, CNN and .VIX are coloured (SPY / QQQ are not). Participation: below 20% <span class="r">red</span>, 20–30% <span class="o">orange</span>, 30–80% normal, above 80% <span class="g">green</span>. CNN: 0–24 <span class="r">red</span>, 25–44 <span class="o">orange</span>, 45–55 normal, 56–75 <span class="g">green</span>, 76–100 <span class="dg">deep green</span>. .VIX: above 35 <span class="r">red</span>, 20–35 <span class="o">orange</span>, 15–20 normal, below 15 <span class="g">green</span>.</p>
+<p><b>Updates:</b> automatically at 19:30 ET each trading day (after CNN's daily value is final). Missing data is never filled in; gaps are listed in <code>data/latest.json</code>. All data is in the <a id="repoLink2" href="https://github.com/">repository</a>; the CSVs open directly in Excel.</p>
 </div>
 </section>
-<footer data-i18n="foot"></footer>
+<footer id="foot"></footer>
 </main>
 <script>
 (async()=>{try{
-const RAW=await fetch('data/dashboard_data.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();});
+const RAW=await fetch('data/dashboard_data.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
 const cut=(()=>{const x=new Date(RAW.d[RAW.d.length-1]);x.setFullYear(x.getFullYear()-2);return x.toISOString().slice(0,10);})();
 const s0=Math.max(0,RAW.d.findIndex(d=>d>=cut));
 const D={};for(const k of ['d','spy','qqq','vix','b','cnn'])D[k]=RAW[k].slice(s0);
-const N=D.d.length, NS='http://www.w3.org/2000/svg';
-const p20=D.b.map(r=>r?r[0]/r[1]*100:null), p50=D.b.map(r=>r?r[2]/r[3]*100:null);
-const T={zh:{title:'美股参与度看板',sub:()=>`数据截至 ${D.d[L]} 收盘 · 标普 500 成分股 · 原始收盘价口径 · 最后更新 ${RAW.updated}`,ovT:'叠加对比 · 归一化走势',pxT:'SPY / QQQ 行情 · 过去两年',brT:'参与度 · 过去两年',fgT:'CNN 恐慌贪婪指数 · 过去两年',mode:'模式：',mBase:'起点=100',mMM:'区间归一化',r3:'近3个月',r6:'近6个月',r12:'近1年',rAll:'全部2年',col:'收起 ▾',exp:'展开 ▸',reset:'重置缩放',lang:'English',day:'当日',wk:'一周',p20:'20日参与度',p50:'50日参与度',cnn:'CNN 恐慌贪婪指数',ref50:'50%',ref20:'20% 洗盘线',ef:'极度恐慌',f:'恐慌',n:'中性',g:'贪婪',eg:'极度贪婪',hi:'最高',lo:'最低',stocks:'只',chgAx:'相对起点 %',foot:'数据：Yahoo Finance（价格、成分股收盘价）、Wikipedia（成分股名单）、CNN Fear & Greed（经 GitHub whit3rabbit/fear-greed-data）。每个交易日 19:30（美东）自动更新。'},
-en:{title:'US Equity Participation Dashboard',sub:()=>`Data as of close ${D.d[L]} · S&P 500 members · raw close basis · updated ${RAW.updated}`,ovT:'Overlay · normalized trends',pxT:'SPY / QQQ prices · past two years',brT:'Participation · past two years',fgT:'CNN Fear & Greed Index · past two years',mode:'Mode:',mBase:'Start = 100',mMM:'Range-normalized',r3:'3M',r6:'6M',r12:'1Y',rAll:'All 2Y',col:'Collapse ▾',exp:'Expand ▸',reset:'Reset zoom',lang:'中文',day:'1D',wk:'1W',p20:'20-day participation',p50:'50-day participation',cnn:'CNN Fear & Greed',ref50:'50%',ref20:'20% washout',ef:'Extreme fear',f:'Fear',n:'Neutral',g:'Greed',eg:'Extreme greed',hi:'High',lo:'Low',stocks:'stocks',chgAx:'% from start',foot:'Data: Yahoo Finance (prices, member closes), Wikipedia (member list), CNN Fear & Greed (via GitHub whit3rabbit/fear-greed-data). Updated automatically each trading day at 19:30 ET.'}};
+const N=D.d.length,L=N-1,NS='http://www.w3.org/2000/svg';
+const p20=D.b.map(r=>r?r[0]/r[1]*100:null),p50=D.b.map(r=>r?r[2]/r[3]*100:null);
 let lang='zh';
-const t=k=>{const v=T[lang][k];return typeof v==='function'?v():v;};
+const WD={zh:['周日','周一','周二','周三','周四','周五','周六'],en:['Sun','Mon','Tue','Wed','Thu','Fri','Sat']};
+const dl=d=>{const w=WD[lang][new Date(d+'T12:00:00Z').getUTCDay()];return lang==='zh'?`${d}（${w}）`:`${d} (${w})`;};
+const T={zh:{title:'美股参与度看板',asof:d=>`数据截至 <b>${dl(d)} 收盘</b>`,lede:'标普500 市场宽度：成分股收盘价站在自身均线上方的占比。参与度越低，说明上涨（或下跌）越集中在少数股票上。',
+ spyN:'SPY • 标普500 ETF 收盘价',qqqN:'QQQ • 纳指100 ETF 收盘价',vixN:'.VIX • 波动率指数',b20N:'20日均线上方占比 • 短期',b50N:'50日均线上方占比 • 中期',cnnN:'CNN 恐慌贪婪指数 • 情绪',
+ close:'收盘',rng2:'两年区间',day:'当日',wk:'一周',pos:(p,c)=>`位于两年区间 ${p}% 处 • 较两年起点 ${c}`,
+ above:(a,n,k)=>`${a} / ${n} 只成分股在 ${k}日均线之上`,weak:'20% 弱势线',half:'50%',halfL:'50% 半数线',
+ bs:{b5:'跌破 5%，历史级底部区域',b20:'已跌入 20% 以下的弱势（洗盘）区',b30:'处于 20–30% 的偏弱区',b50s:'跌破半数线，短期趋势转弱',b50m:'跌破半数线，中期趋势转弱',ok:'站上半数线，参与度健康',hot:'超过 80%，参与度极高（留意过热）'},
+ cnnSub:d=>`${dl(d)}读数，0 分最恐慌、100 分最贪婪`,zone:{ef:'极度恐慌',f:'恐慌',n:'中性',g:'贪婪',eg:'极度贪婪'},zoneEn:{ef:'Extreme Fear',f:'Fear',n:'Neutral',g:'Greed',eg:'Extreme Greed'},
+ zr:{ef:'0–24',f:'25–44',n:'45–55',g:'56–75',eg:'76–100'},cnnPill:(z,r)=>`${T.zh.zone[z]} ${T.zh.zoneEn[z]}（${r} 区）`,
+ ovT:'叠加对比 • 归一化走势',pxT:'SPY / QQQ 行情 • 过去两年',brT:'参与度 • 过去两年',fgT:'CNN 恐慌贪婪指数 • 过去两年',
+ mBase:'起点=100',mMM:'区间归一化',r3:'近3个月',r6:'近6个月',r12:'近1年',rAll:'全部2年',col:'收起 ▾',exp:'展开 ▸',reset:'重置缩放',lang:'English',
+ p20:'20日参与度',p50:'50日参与度',cnn:'CNN指数',start100:'起点 = 100',
+ ovCapBase:'起点=100：每条线以当前区间第一个交易日为 100，按相对涨跌叠加，纵轴为指数值（100 = 起点）。各线数量级不同、不能直接同轴比绝对值，点按曲线可看每天的原始数值。四张图各有一组时间范围按钮、互相同步。拖动可左右平移，滚轮 / 双指可缩放（缩放后归一化按当前可见窗口重新计算），双击或点「重置缩放」恢复。',
+ ovCapMM:'区间归一化：每条线按当前可见区间内的最低–最高缩放到 0–100，只比形状和拐点是否同步，不比涨跌幅度。点按曲线显示的仍是原始数值。拖动平移，滚轮 / 双指缩放，双击或点「重置缩放」恢复。',
+ pxCap:'美元原始收盘价（未归一化）：SPY 与 QQQ 价格相近，两条线共用左轴同一个美元刻度。点按曲线可看每天的收盘价；点图例可单独显示一条线。拖动平移，滚轮 / 双指缩放，双击或点「重置缩放」恢复。',
+ brCap:'在曲线上移动或点按，可查看任意交易日的读数与“上方只数 / 分母”。虚线为 50% 半数线与 20% 弱势线；点图例可单独看一条线。拖动平移，滚轮 / 双指缩放，双击或点「重置缩放」恢复。',
+ fgCap:'0–24 极度恐慌 · 25–44 恐慌 · 45–55 中性 · 56–75 贪婪 · 76–100 极度贪婪。虚线为 25 / 50 / 75 分界；2026-03-12 源头缺数，曲线在该处断开。拖动平移，滚轮 / 双指缩放，双击或点「重置缩放」恢复。',
+ latestPx:(n,v,c)=>`${n} 最新 <b>$${v}</b>（两年 ${c}）`,fgMeta:(d,hi,hd,hz,lo,ld,lz)=>`${dl(d)}最新 · 两年最高 ${hi}（${hd}，${hz}）· 两年最低 ${lo}（${ld}，${lz}）`,
+ stT:k=>`${k}日参与度 • 两年区间`,stLatest:d=>`最新（${d.slice(5)}）`,stHi:'两年最高',stLo:'两年最低',stocks:'只',
+ foot:(a,b,u)=>`数据范围 ${a} 至 ${b} · 每个交易日 19:30（美东）自动更新 · 最后更新 ${u} · 数据：Yahoo Finance、Wikipedia、CNN · 背景照片：Nicholas Cappello / <a href="https://unsplash.com/photos/close-up-photo-of-monitor-displaying-graph-Wb63zqJ5gnE">Unsplash</a>`},
+en:{title:'US Equity Participation Dashboard',asof:d=>`Data as of <b>close ${dl(d)}</b>`,lede:'S&P 500 market breadth: the share of members closing above their own moving average. The lower it is, the more a rally (or sell-off) rests on a few stocks.',
+ spyN:'SPY • S&P 500 ETF close',qqqN:'QQQ • Nasdaq-100 ETF close',vixN:'.VIX • Volatility index',b20N:'% above 20-day MA • short term',b50N:'% above 50-day MA • medium term',cnnN:'CNN Fear & Greed • sentiment',
+ close:'close',rng2:'2-yr range',day:'1D',wk:'1W',pos:(p,c)=>`At ${p}% of 2-yr range • ${c} vs 2 yrs ago`,
+ above:(a,n,k)=>`${a} / ${n} members above the ${k}-day MA`,weak:'20% weak line',half:'50%',halfL:'50% midline',
+ bs:{b5:'Below 5%: historic-bottom territory',b20:'Below 20%: washout zone',b30:'In the weak 20–30% band',b50s:'Below the midline: short-term trend weakening',b50m:'Below the midline: medium-term trend weakening',ok:'Above the midline: healthy participation',hot:'Above 80%: very broad (watch for overheating)'},
+ cnnSub:d=>`${dl(d)} reading; 0 = max fear, 100 = max greed`,zone:{ef:'Extreme fear',f:'Fear',n:'Neutral',g:'Greed',eg:'Extreme greed'},
+ zr:{ef:'0–24',f:'25–44',n:'45–55',g:'56–75',eg:'76–100'},cnnPill:(z,r)=>`${T.en.zone[z]} (${r} zone)`,
+ ovT:'Overlay • normalized trends',pxT:'SPY / QQQ prices • past two years',brT:'Participation • past two years',fgT:'CNN Fear & Greed • past two years',
+ mBase:'Start = 100',mMM:'Range-normalized',r3:'3M',r6:'6M',r12:'1Y',rAll:'All 2Y',col:'Collapse ▾',exp:'Expand ▸',reset:'Reset zoom',lang:'中文',
+ p20:'20-day participation',p50:'50-day participation',cnn:'CNN index',start100:'Start = 100',
+ ovCapBase:'Start = 100: every line is set to 100 on the first trading day of the window and moves with its relative change; the axis is an index (100 = start). Lines differ in scale, so absolute values cannot share an axis; tap to see raw values. All four charts share one set of range buttons. Drag to pan, wheel / pinch to zoom (normalization follows the visible window), double-click or Reset zoom to restore.',
+ ovCapMM:'Range-normalized: each line is scaled to 0–100 by its min–max in the visible window, to compare shape and turning points, not the size of moves. Readouts show raw values. Drag to pan, wheel / pinch to zoom, double-click or Reset zoom to restore.',
+ pxCap:'Raw US-dollar closes (not normalized): SPY and QQQ trade at similar prices and share one left-hand dollar axis. Tap for daily closes; click a legend chip to show one line. Drag to pan, wheel / pinch to zoom, double-click or Reset zoom to restore.',
+ brCap:'Hover or tap to read any trading day, with the count / denominator. Dashed lines mark the 50% midline and the 20% weak line; click a legend chip to show one line. Drag to pan, wheel / pinch to zoom, double-click or Reset zoom to restore.',
+ fgCap:'0–24 extreme fear · 25–44 fear · 45–55 neutral · 56–75 greed · 76–100 extreme greed. Dashed lines at 25 / 50 / 75; 2026-03-12 is missing at source and the line breaks there. Drag to pan, wheel / pinch to zoom, double-click or Reset zoom to restore.',
+ latestPx:(n,v,c)=>`${n} latest <b>$${v}</b> (2 yrs ${c})`,fgMeta:(d,hi,hd,hz,lo,ld,lz)=>`Latest ${dl(d)} · 2-yr high ${hi} (${hd}, ${hz}) · 2-yr low ${lo} (${ld}, ${lz})`,
+ stT:k=>`${k}-day participation • 2-yr range`,stLatest:d=>`Latest (${d.slice(5)})`,stHi:'2-yr high',stLo:'2-yr low',stocks:'',
+ foot:(a,b,u)=>`Data ${a} to ${b} · updated automatically 19:30 ET each trading day · last update ${u} · Sources: Yahoo Finance, Wikipedia, CNN · Background photo: Nicholas Cappello / <a href="https://unsplash.com/photos/close-up-photo-of-monitor-displaying-graph-Wb63zqJ5gnE">Unsplash</a>`}};
+const t=k=>T[lang][k];
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const f2=v=>v==null?'—':v.toFixed(2);
 const pct=v=>(v>=0?'+':'')+v.toFixed(2)+'%';
 const el=(tag,a,p)=>{const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;};
-const fgBand=v=>v<25?'ef':v<45?'f':v<=55?'n':v<=75?'g':'eg';
-const cBr=v=>v<20?'c-red':v<30?'c-orange':v>80?'c-green':'';
-const cFg=v=>v<25?'c-red':v<45?'c-orange':v<=55?'':v<=75?'c-green':'c-dgreen';
-const cVix=v=>v>35?'c-red':v>=20?'c-orange':v<15?'c-green':'';
+const fgZ=v=>v<25?'ef':v<45?'f':v<=55?'n':v<=75?'g':'eg';
+const cBr=v=>v<20?'red':v<30?'orange':v>80?'green':'';
+const cFg=v=>({ef:'red',f:'orange',n:'',g:'green',eg:'dgreen'})[fgZ(v)];
+const cVix=v=>v>35?'red':v>=20?'orange':v<15?'green':'';
 const small=()=>matchMedia('(max-width:640px)').matches;
+const lastI=a=>{let i=L;while(i>0&&a[i]==null)i--;return i;};
+const firstV=a=>a.find(v=>v!=null);
+const minmax=a=>{let lo=Infinity,hi=-Infinity,li=0,hi_=0;a.forEach((v,i)=>{if(v==null)return;if(v<lo){lo=v;li=i;}if(v>hi){hi=v;hi_=i;}});return {lo,hi,li,hi_};};
 
-/* ---------- cards ---------- */
-const L=N-1, wkI=(()=>{const tgt=new Date(D.d[L]);tgt.setDate(tgt.getDate()-7);const s=tgt.toISOString().slice(0,10);let i=L;while(i>0&&D.d[i]>s)i--;return i;})();
+/* ---------- KPI cards ---------- */
+const wkI=(()=>{const x=new Date(D.d[L]);x.setDate(x.getDate()-7);const s=x.toISOString().slice(0,10);let i=L;while(i>0&&D.d[i]>s)i--;return i;})();
 function cards(){
-  const pc=(a)=>{const d=(a[L]/a[L-1]-1)*100,w=(a[L]/a[wkI]-1)*100;return [d,w];};
-  const mk=(k,val,cls,sub)=>`<div class="card"><div class="k">${k}</div><div class="v ${cls}">${val}</div><div class="s ${cls}">${sub}</div></div>`;
-  const px=(name,a,cls)=>{const [d,w]=pc(a);return mk(name,f2(a[L]),cls,`${t('day')} <b>${pct(d)}</b> · ${t('wk')} <b>${pct(w)}</b> · ${D.d[L]}`);};
-  const lastI=a=>{let i=L;while(i>0&&a[i]==null)i--;return i;};
-  const ib=lastI(D.b),ic=lastI(D.cnn),b=D.b[ib],fg=D.cnn[ic];
-  const dnote=i=>i===L?'':` · <span class="c-orange">${D.d[i]}</span>`;
-  document.getElementById('cards').innerHTML=
-    px('SPY',D.spy,'')+px('QQQ',D.qqq,'')+px('.VIX',D.vix,cVix(D.vix[L]))+
-    mk(t('p20'),p20[ib].toFixed(2)+'%',cBr(p20[ib]),`${b[0]} / ${b[1]} ${t('stocks')}${dnote(ib)}`)+
-    mk(t('p50'),p50[ib].toFixed(2)+'%',cBr(p50[ib]),`${b[2]} / ${b[3]} ${t('stocks')}${dnote(ib)}`)+
-    mk(t('cnn'),f2(fg),cFg(fg),`${t(fgBand(fg))} · ${D.d[ic]}`);
+  const head=(c,n)=>`<div class="ch"><i style="background:var(${c})"></i>${n}</div>`;
+  const price=(key,c,nameK,dollar,cls,inv)=>{const a=D[key],i=lastI(a),v=a[i],m=minmax(a),pos=Math.round((v-m.lo)/(m.hi-m.lo)*100),ch=(v/firstV(a)-1)*100;
+    const d=(v/a[i-1]-1)*100,w=(v/a[wkI]-1)*100,dir=x=>(x>=0)!==!!inv?'up':'dn',$=dollar?'$':'';
+    return `<div class="card glass">${head(c,t(nameK))}<div class="big ${cls}">${$}${f2(v)}</div>
+      <div class="chg"><span class="${dir(d)}">${t('day')} ${pct(d)}</span><span class="${dir(w)}">${t('wk')} ${pct(w)}</span></div>
+      <div class="sub">${dl(D.d[i])} ${t('close')} · <span style="white-space:nowrap">${t('rng2')} ${$}${f2(m.lo)} – ${$}${f2(m.hi)}</span></div>
+      <div class="bar"><span style="width:${pos}%;background:var(${c})"></span></div>
+      <div class="pill ${cls}">${t('pos')(pos,(ch>=0?'+':'')+ch.toFixed(key==='vix'?1:2)+'%')}</div></div>`;};
+  const breadth=(k)=>{const arr=k===20?p20:p50,i=lastI(arr),v=arr[i],b=D.b[i],a=k===20?b[0]:b[2],n=k===20?b[1]:b[3],c=k===20?'--p20':'--p50',cls=cBr(v);
+    const st=v<5?'b5':v<20?'b20':v<30?'b30':v<50?(k===20?'b50s':'b50m'):v<=80?'ok':'hot';
+    const pc=v<30?cls:v>80?'green':'';
+    return `<div class="card glass">${head(c,t(k===20?'b20N':'b50N'))}<div class="big ${cls}">${v.toFixed(2)}<small>%</small></div>
+      <div class="sub">${t('above')(a,n,k)}${i<L?` · ${D.d[i]}`:''}</div>
+      <div class="bar ticks"><span style="width:${v}%;background:var(${c})"></span><em style="left:20%"><b>${t('weak')}</b></em><em style="left:50%"><b>${t('half')}</b></em></div>
+      <div class="pill ${pc}">${t('bs')[st]}</div></div>`;};
+  const ci=lastI(D.cnn),cv=D.cnn[ci],z=fgZ(cv),zc=cFg(cv);
+  const cnn=`<div class="card glass">${head('--cnn',t('cnnN'))}<div class="big ${zc}">${f2(cv)}<small>/ 100</small></div>
+      <div class="sub">${t('cnnSub')(D.d[ci])}</div>
+      <div class="bar ticks"><span style="width:${cv}%;background:var(--cnn)"></span><em style="left:25%"><b>25 ${t('zone').f}</b></em><em style="left:50%"><b>50 ${t('zone').n}</b></em><em style="left:75%"><b>75 ${t('zone').g}</b></em></div>
+      <div class="pill ${zc}">${t('cnnPill')(z,t('zr')[z])}</div></div>`;
+  document.getElementById('cards').innerHTML=price('spy','--spy','spyN',true,'')+price('qqq','--qqq','qqqN',true,'')+price('vix','--vix','vixN',false,cVix(D.vix[lastI(D.vix)]),true)+breadth(20)+breadth(50)+cnn;
+}
+
+/* ---------- side info ---------- */
+function side(){
+  document.getElementById('pxLatest').innerHTML=['spy','qqq'].map(k=>{const a=D[k],v=a[lastI(a)],c=(v/firstV(a)-1)*100;
+    return `<span><span class="sw" style="display:inline-block;background:var(--${k});margin-right:7px"></span>${t('latestPx')(k.toUpperCase(),f2(v),pct(c))}</span>`;}).join('');
+  const ci=lastI(D.cnn),cv=D.cnn[ci],m=minmax(D.cnn),z=fgZ(cv);
+  document.getElementById('fgHead').innerHTML=`<span class="v" style="color:var(--${cFg(cv)||'ink'})">${f2(cv)}<small> / 100</small></span><span class="pill ${cFg(cv)}" style="margin:0">${t('cnnPill')(z,t('zr')[z])}</span><span class="m">${t('fgMeta')(D.d[ci],f2(m.hi),D.d[m.hi_],t('zone')[fgZ(m.hi)],f2(m.lo),D.d[m.li],t('zone')[fgZ(m.lo)])}</span>`;
+  for(const k of [20,50]){const a=k===20?p20:p50,i=lastI(a),m=minmax(a);
+    document.getElementById('st'+k).innerHTML=`<div class="ch"><i style="background:var(--p${k})"></i>${t('stT')(k)}</div><table>
+      <tr><td>${t('stLatest')(D.d[i])}</td><td class="n">${a[i].toFixed(2)}%</td><td class="dt">${D.b[i][k===20?0:2]} / ${D.b[i][k===20?1:3]} ${t('stocks')}</td></tr>
+      <tr><td>${t('stHi')}</td><td class="n">${m.hi.toFixed(2)}%</td><td class="dt">${D.d[m.hi_]}</td></tr>
+      <tr><td>${t('stLo')}</td><td class="n">${m.lo.toFixed(2)}%</td><td class="dt">${D.d[m.li]}</td></tr></table>`;}
+  document.getElementById('asof').innerHTML=t('asof')(D.d[L]);
+  document.getElementById('foot').innerHTML=t('foot')(D.d[0],D.d[L],RAW.updated||'');
+  document.getElementById('ovCap').textContent=t(ovMode==='base'?'ovCapBase':'ovCapMM');
 }
 
 /* ---------- shared range ---------- */
 const RANGES=[['r3',3],['r6',6],['r12',12],['rAll',0]];
 let range='rAll';
-function baseWin(){const m=RANGES.find(r=>r[0]===range)[1];if(!m)return [0,L];const d=new Date(D.d[L]);d.setMonth(d.getMonth()-m);const s=d.toISOString().slice(0,10);let i=0;while(D.d[i]<s)i++;return [i,L];}
+function baseWin(){const m=RANGES.find(r=>r[0]===range)[1];if(!m)return [0,L];const x=new Date(D.d[L]);x.setMonth(x.getMonth()-m);const s=x.toISOString().slice(0,10);let i=0;while(D.d[i]<s)i++;return [i,L];}
 
-/* ---------- series definitions ---------- */
-const SER={spy:{a:D.spy,c:'--spy',lab:()=>'SPY',fmt:f2},qqq:{a:D.qqq,c:'--qqq',lab:()=>'QQQ',fmt:f2},vix:{a:D.vix,c:'--vix',lab:()=>'.VIX',fmt:f2},
-  p20:{a:p20,c:'--p20',lab:()=>t('p20'),fmt:v=>v.toFixed(2)+'%'},p50:{a:p50,c:'--p50',lab:()=>t('p50'),fmt:v=>v.toFixed(2)+'%'},cnn:{a:D.cnn,c:'--cnn',lab:()=>'CNN',fmt:f2}};
-const ovOn=new Set(['spy','p50','cnn']); let ovMode='base';
+/* ---------- series ---------- */
+const SER={spy:{a:D.spy,c:'--spy',lab:()=>'SPY',fmt:v=>'$'+f2(v)},qqq:{a:D.qqq,c:'--qqq',lab:()=>'QQQ',fmt:v=>'$'+f2(v)},vix:{a:D.vix,c:'--vix',lab:()=>'.VIX',fmt:f2},
+  p20:{a:p20,c:'--p20',lab:()=>t('p20'),fmt:v=>v.toFixed(2)+'%'},p50:{a:p50,c:'--p50',lab:()=>t('p50'),fmt:v=>v.toFixed(2)+'%'},cnn:{a:D.cnn,c:'--cnn',lab:()=>t('cnn'),fmt:f2}};
+const ovOn=new Set(['spy','p50','cnn']);let ovMode='base';
 const hidden={px:new Set(),br:new Set()};
+function niceTicks(a,b,n){const span=b-a,st0=span/n,mag=10**Math.floor(Math.log10(st0)),st=[1,2,2.5,5,10].map(x=>x*mag).find(x=>x>=st0);const out=[];for(let v=Math.ceil(a/st)*st;v<=b+1e-9;v+=st)out.push(+v.toFixed(6));return out;}
 
-function niceTicks(a,b,n){const span=b-a,step0=span/n,mag=10**Math.floor(Math.log10(step0)),st=[1,2,2.5,5,10].map(x=>x*mag).find(x=>x>=step0);const out=[];for(let v=Math.ceil(a/st)*st;v<=b+1e-9;v+=st)out.push(+v.toFixed(6));return out;}
-
-/* ---------- chart objects ---------- */
 const charts={};
 function lines(c,i0,i1){
   const lo=Math.ceil(i0),hi=Math.floor(i1);
-  if(c.id==='ov'){
-    return [...ovOn].map(k=>{const s=SER[k],a=s.a;let base=null,mn=Infinity,mx=-Infinity;
+  if(c.id==='ov')return [...ovOn].map(k=>{const s=SER[k],a=s.a;let base=null,mn=Infinity,mx=-Infinity;
       for(let i=lo;i<=hi;i++){const v=a[i];if(v==null)continue;if(base==null)base=v;mn=Math.min(mn,v);mx=Math.max(mx,v);}
-      const tr=ovMode==='base'?(v=>(v/base-1)*100):(v=>mx>mn?(v-mn)/(mx-mn)*100:50);
-      return {k,col:css(s.c),y:a.map(v=>v==null||base==null?null:tr(v)),raw:a,fmt:s.fmt,lab:s.lab()};});
-  }
-  if(c.id==='px')return ['spy','qqq'].filter(k=>!hidden.px.has(k)).map(k=>({k,col:css(SER[k].c),y:SER[k].a,raw:SER[k].a,fmt:f2,lab:SER[k].lab(),end:true}));
-  if(c.id==='br')return ['p20','p50'].filter(k=>!hidden.br.has(k)).map(k=>({k,col:css(SER[k].c),y:SER[k].a,raw:SER[k].a,fmt:SER[k].fmt,lab:SER[k].lab()}));
-  return [{k:'cnn',col:css('--cnn'),y:D.cnn,raw:D.cnn,fmt:f2,lab:'CNN',end:true}];
+      const tr=ovMode==='base'?(v=>v/base*100):(v=>mx>mn?(v-mn)/(mx-mn)*100:50);
+      return {k,col:css(s.c),y:a.map(v=>v==null||base==null?null:tr(v)),raw:a,fmt:s.fmt,lab:s.lab(),end:v=>v.toFixed(1)};});
+  if(c.id==='px')return ['spy','qqq'].filter(k=>!hidden.px.has(k)).map(k=>({k,col:css(SER[k].c),y:SER[k].a,raw:SER[k].a,fmt:SER[k].fmt,lab:SER[k].lab(),end:v=>'$'+f2(v)}));
+  if(c.id==='br')return ['p20','p50'].filter(k=>!hidden.br.has(k)).map(k=>({k,col:css(SER[k].c),y:SER[k].a,raw:SER[k].a,fmt:SER[k].fmt,lab:SER[k].lab(),area:true,end:v=>v.toFixed(2)+'%'}));
+  return [{k:'cnn',col:css('--cnn'),y:D.cnn,raw:D.cnn,fmt:f2,lab:t('cnn'),area:true,end:f2}];
 }
 function yDom(c,ls,i0,i1){
   if(c.id==='br'||c.id==='fg')return [0,100];
-  if(c.id==='ov'&&ovMode==='mm')return [-5,105];
+  if(c.id==='ov'&&ovMode==='mm')return [-4,104];
   let mn=Infinity,mx=-Infinity;const lo=Math.ceil(i0),hi=Math.floor(i1);
   for(const s of ls)for(let i=lo;i<=hi;i++){const v=s.y[i];if(v!=null){mn=Math.min(mn,v);mx=Math.max(mx,v);}}
+  if(c.id==='ov'){mn=Math.min(mn,100);mx=Math.max(mx,100);}
   if(!isFinite(mn)){mn=0;mx=1;}const pad=(mx-mn||1)*.06;return [mn-pad,mx+pad];
 }
 
@@ -255,37 +339,37 @@ function draw(c){
   const svg=c.svg;while(svg.firstChild)svg.removeChild(svg.firstChild);
   const W=c.fig.clientWidth,H=c.fig.clientHeight;if(!W)return;
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
-  const narrow=W<520,m={l:narrow?38:50,r:narrow?10:14,t:12,b:24},pw=W-m.l-m.r,ph=H-m.t-m.b;
+  const narrow=W<520,m={l:narrow?40:52,r:narrow?12:16,t:16,b:28},pw=W-m.l-m.r,ph=H-m.t-m.b;
   const [i0,i1]=c.view,ls=lines(c,i0,i1),[y0,y1]=yDom(c,ls,i0,i1);
   const X=i=>m.l+(i-i0)/Math.max(1e-9,i1-i0)*pw,Y=v=>m.t+(1-(v-y0)/(y1-y0))*ph;
   c.g={m,pw,ph,X,Y,ls};
-  const cp=el('clipPath',{id:'cp-'+c.id},el('defs',{},svg));el('rect',{x:m.l,y:m.t-2,width:pw,height:ph+4},cp);
-  if(c.id==='fg'){const bands=[[0,25,'--red',.10],[25,45,'--orange',.08],[45,55,'--mute',.05],[55,75,'--green',.07],[75,100,'--dgreen',.11]];
-    for(const [a,b,v,o] of bands){el('rect',{x:m.l,y:Y(b),width:pw,height:Y(a)-Y(b),fill:css(v),'fill-opacity':o},svg);
-      if(!narrow){const tx=el('text',{x:m.l+6,y:(Y(a)+Y(b))/2+4},svg);tx.textContent=t(fgBand((a+b)/2));}}}
-  const ticks=c.id==='fg'?[0,25,50,75,100]:niceTicks(y0,y1,narrow?4:5);
-  for(const v of ticks){if(v<y0||v>y1)continue;el('line',{x1:m.l,x2:m.l+pw,y1:Y(v),y2:Y(v),stroke:css('--grid'),...(c.id==='fg'&&v%50?{'stroke-dasharray':'4 4',stroke:css('--mute'),'stroke-opacity':.5}:{})},svg);
-    const tx=el('text',{x:m.l-6,y:Y(v)+4,'text-anchor':'end'},svg);
-    tx.textContent=c.id==='ov'?(ovMode==='base'?(v>0?'+':'')+v+'%':v):c.id==='br'?v+'%':c.id==='px'?'$'+v:v;}
-  if(c.id==='br')for(const [v,k] of [[50,'ref50'],[20,'ref20']]){el('line',{x1:m.l,x2:m.l+pw,y1:Y(v),y2:Y(v),stroke:css('--mute'),'stroke-dasharray':'5 4','stroke-width':1},svg);
-    const tx=el('text',{x:m.l+pw-4,y:Y(v)-4,'text-anchor':'end'},svg);tx.textContent=t(k);}
-  if(c.id==='ov'&&ovMode==='base')el('line',{x1:m.l,x2:m.l+pw,y1:Y(0),y2:Y(0),stroke:css('--mute'),'stroke-opacity':.6},svg);
-  /* x ticks */
+  const defs=el('defs',{},svg),cp=el('clipPath',{id:'cp-'+c.id},defs);el('rect',{x:m.l,y:m.t-3,width:pw,height:ph+6},cp);
+  if(c.id==='fg'){const z=[[0,25,'--red',.16],[25,45,'--red',.08],[45,55,'--mute',.05],[55,75,'--p50',.07],[75,100,'--p50',.13]];
+    for(const [a,b,v,o] of z){el('rect',{x:m.l,y:Y(b),width:pw,height:Y(a)-Y(b),fill:css(v),'fill-opacity':o},svg);
+      if(!narrow){const tx=el('text',{x:m.l+8,y:(Y(a)+Y(b))/2+4,'fill-opacity':.85},svg);tx.textContent=t('zone')[fgZ((a+b)/2)];}}}
+  const ticks=c.id==='fg'?[0,25,50,75,100]:c.id==='br'?[0,20,40,60,80,100]:niceTicks(y0,y1,narrow?4:5);
+  for(const v of ticks){if(v<y0-1e-9||v>y1+1e-9)continue;const dash=c.id==='fg'&&v%50!==0;
+    el('line',{x1:m.l,x2:m.l+pw,y1:Y(v),y2:Y(v),stroke:dash?'rgba(255,255,255,.22)':'rgba(255,255,255,.06)',...(dash?{'stroke-dasharray':'4 5'}:{})},svg);
+    const tx=el('text',{x:m.l-8,y:Y(v)+4,'text-anchor':'end'},svg);tx.textContent=c.id==='br'?v+'%':c.id==='px'?'$'+v:v;}
+  const refs=c.id==='br'?[[50,t('halfL')],[20,t('weak')]]:c.id==='ov'&&ovMode==='base'?[[100,t('start100')]]:[];
+  for(const [v,lab] of refs){el('line',{x1:m.l,x2:m.l+pw,y1:Y(v),y2:Y(v),stroke:'rgba(255,255,255,.28)','stroke-dasharray':'5 5'},svg);
+    const tx=el('text',{x:m.l+8,y:Y(v)-5},svg);tx.textContent=lab;}
   const span=i1-i0,nt=narrow?3:6,stp=Math.max(1,Math.round(span/nt));
-  for(let i=Math.ceil(i0);i<=Math.floor(i1);i+=stp){const tx=el('text',{x:X(i),y:H-6,'text-anchor':'middle'},svg);tx.textContent=span>200?D.d[i].slice(0,7):D.d[i].slice(5);}
-  /* lines */
+  for(let i=Math.ceil(i0);i<=Math.floor(i1);i+=stp){const xx=X(i),tx=el('text',{x:xx,y:H-9,'text-anchor':i===Math.ceil(i0)?'start':xx>m.l+pw-30?'end':'middle'},svg);tx.textContent=span>200?D.d[i].slice(0,7).replace('-','/'):D.d[i].slice(5);}
   const gl=el('g',{'clip-path':`url(#cp-${c.id})`},svg),lo=Math.max(0,Math.floor(i0)),hi=Math.min(L,Math.ceil(i1));
-  for(const s of ls){let d='',pen=false;for(let i=lo;i<=hi;i++){const v=s.y[i];if(v==null){pen=false;continue;}d+=(pen?'L':'M')+X(i).toFixed(1)+','+Y(v).toFixed(1);pen=true;}
-    el('path',{d,fill:'none',stroke:s.col,'stroke-width':2,'stroke-linejoin':'round'},gl);}
-  /* end labels at last visible point */
+  for(const s of ls){const segs=[];let cur=null;for(let i=lo;i<=hi;i++){const v=s.y[i];if(v==null){cur=null;continue;}if(!cur){cur=[];segs.push(cur);}cur.push([X(i),Y(v)]);}
+    if(s.area){const gid='g-'+c.id+'-'+s.k,lg=el('linearGradient',{id:gid,x1:0,y1:0,x2:0,y2:1},defs);
+      el('stop',{offset:0,'stop-color':s.col,'stop-opacity':c.id==='br'?.16:.22},lg);el('stop',{offset:1,'stop-color':s.col,'stop-opacity':0},lg);
+      for(const sg of segs){if(sg.length<2)continue;el('path',{d:'M'+sg.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join('L')+`L${sg[sg.length-1][0].toFixed(1)},${m.t+ph}L${sg[0][0].toFixed(1)},${m.t+ph}Z`,fill:`url(#${gid})`},gl);}}
+    for(const sg of segs)el('path',{d:'M'+sg.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join('L'),fill:'none',stroke:s.col,'stroke-width':2.2,'stroke-linejoin':'round','stroke-linecap':'round'},gl);}
   const ends=[];
-  for(const s of ls){if(!s.end)continue;let i=Math.min(L,Math.floor(i1));while(i>lo&&s.y[i]==null)i--;if(s.y[i]==null)continue;
-    const py=Y(s.y[i]);el('circle',{cx:X(i),cy:py,r:3.5,fill:s.col},svg);
-    let ty=py+18;if(ty>m.t+ph-2)ty=py-9;ends.push({s,i,ty});}
-  ends.sort((a,b)=>a.ty-b.ty);for(let j=1;j<ends.length;j++)if(ends[j].ty-ends[j-1].ty<15)ends[j].ty=ends[j-1].ty+15;
-  for(const e of ends){const bgc=css('--bg'),tx=el('text',{x:X(e.i)-2,y:e.ty,'text-anchor':'end',style:`fill:${e.s.col};font-weight:700;paint-order:stroke;stroke:${bgc};stroke-width:3px`},svg);tx.textContent=f2(e.s.raw[e.i]);}
-  c.cross=el('line',{y1:m.t,y2:m.t+ph,stroke:css('--mute'),'stroke-width':1,visibility:'hidden'},svg);
-  c.dots=ls.map(s=>el('circle',{r:4,fill:s.col,stroke:css('--bg'),'stroke-width':1.5,visibility:'hidden'},svg));
+  for(const s of ls){let i=Math.min(L,Math.floor(i1));while(i>lo&&s.y[i]==null)i--;if(s.y[i]==null)continue;
+    const py=Y(s.y[i]);el('circle',{cx:X(i),cy:py,r:4.5,fill:s.col,stroke:'rgba(8,12,20,.9)','stroke-width':2},svg);
+    let ty=py+4;ends.push({s,i,ty,v:c.id==='ov'?s.y[i]:s.raw[i]});}
+  ends.sort((a,b)=>a.ty-b.ty);for(let j=1;j<ends.length;j++)if(ends[j].ty-ends[j-1].ty<16)ends[j].ty=ends[j-1].ty+16;
+  for(const e of ends){const tx=el('text',{x:X(e.i)-11,y:Math.min(e.ty,m.t+ph-2),'text-anchor':'end',style:`fill:${e.s.col};font-weight:700;font-size:13px;paint-order:stroke;stroke:rgba(8,12,20,.85);stroke-width:4px;stroke-linejoin:round`},svg);tx.textContent=e.s.end(e.v);}
+  c.cross=el('line',{y1:m.t,y2:m.t+ph,stroke:'rgba(255,255,255,.35)','stroke-width':1,visibility:'hidden'},svg);
+  c.dots=ls.map(s=>el('circle',{r:4.5,fill:s.col,stroke:'#0b1220','stroke-width':2,visibility:'hidden'},svg));
   const bw=baseWin();c.resetB.hidden=!(Math.abs(c.view[0]-bw[0])>.01||Math.abs(c.view[1]-bw[1])>.01);
 }
 
@@ -295,12 +379,12 @@ function showTip(c,px,py){
   i=Math.max(Math.ceil(c.view[0]),Math.min(Math.floor(c.view[1]),i));
   c.cross.setAttribute('x1',g.X(i));c.cross.setAttribute('x2',g.X(i));c.cross.setAttribute('visibility','visible');
   g.ls.forEach((s,j)=>{const v=s.y[i],d=c.dots[j];if(v==null){d.setAttribute('visibility','hidden');return;}d.setAttribute('cx',g.X(i));d.setAttribute('cy',g.Y(v));d.setAttribute('visibility','visible');});
-  const sm=small(),rows=g.ls.map(s=>{const v=s.raw[i];const lab=sm&&c.id==='ov'?SER[s.k].lab().replace(/参与度| participation/,''):s.lab;
-    let val=v==null?'—':s.fmt(v);if(s.k==='cnn'&&v!=null)val+=' '+t(fgBand(v));
-    return `<span><span class="sw" style="background:${s.col}"></span> ${lab} <b>${val}</b></span>`;});
-  if(c.id==='br'&&!sm){const b=D.b[i];rows.push(`<span>${b[0]}/${b[1]} · ${b[2]}/${b[3]}</span>`);}
-  const tip=c.tip;tip.className='tip'+(sm?' strip':'');tip.innerHTML=`<span class="d">${D.d[i]}</span>`+(sm?rows.join(''):'<br>'+rows.join('<br>'));tip.hidden=false;
-  if(!sm){const W=c.fig.clientWidth,tw=tip.offsetWidth;let x=px+14;if(x+tw>W)x=px-tw-14;tip.style.left=Math.max(0,x)+'px';tip.style.top=Math.max(0,Math.min(py-20,c.fig.clientHeight-tip.offsetHeight))+'px';}
+  const sm=small(),rows=g.ls.map(s=>{const v=s.raw[i];let val=v==null?'—':s.fmt(v);if(s.k==='cnn'&&v!=null)val+=' · '+t('zone')[fgZ(v)];
+    const lab=sm&&c.id==='ov'?SER[s.k].lab().replace(/参与度| participation/,'').replace(/指数| index/,''):s.lab;
+    return `<span class="r"><span class="sw" style="background:${s.col}"></span>${lab}<b>${val}</b></span>`;});
+  if(c.id==='br'&&D.b[i]){const b=D.b[i];rows.push(`<span class="r">${lang==='zh'?'上方/分母':'count / n'}<b>${b[0]}/${b[1]} · ${b[2]}/${b[3]}</b></span>`);}
+  const tip=c.tip;tip.className='tip'+(sm?' strip':'');tip.innerHTML=`<span class="d">${dl(D.d[i])}</span>`+rows.join('');tip.hidden=false;
+  if(!sm){const W=c.fig.clientWidth,tw=tip.offsetWidth;let x=px+16;if(x+tw>W-6)x=px-tw-16;tip.style.left=Math.max(6,x)+'px';tip.style.top=Math.max(6,Math.min(py-24,c.fig.clientHeight-tip.offsetHeight-6))+'px';}
   else{tip.style.left='';tip.style.top='';}
 }
 function hideTip(c){c.tip.hidden=true;if(c.cross){c.cross.setAttribute('visibility','hidden');c.dots.forEach(d=>d.setAttribute('visibility','hidden'));}}
@@ -308,10 +392,9 @@ function hideTip(c){c.tip.hidden=true;if(c.cross){c.cross.setAttribute('visibili
 /* ---------- zoom / pan ---------- */
 const MINSPAN=10;
 function setView(c,a,b){const [b0,b1]=baseWin(),span=b-a;if(a<b0){a=b0;b=a+span;}if(b>b1){b=b1;a=b-span;}c.view=[Math.max(b0,a),Math.min(b1,b)];draw(c);}
-function zoomAt(c,anchor,factor){const [a,b]=c.view,[b0,b1]=baseWin(),span=b-a;let ns=Math.max(MINSPAN,Math.min(b1-b0,span*factor));if(Math.abs(ns-span)<1e-6)return false;
+function zoomAt(c,anchor,factor){const [a,b]=c.view,[b0,b1]=baseWin(),span=b-a;const ns=Math.max(MINSPAN,Math.min(b1-b0,span*factor));if(Math.abs(ns-span)<1e-6)return false;
   const r=(anchor-a)/span;setView(c,anchor-r*ns,anchor-r*ns+ns);return true;}
 function idxAt(c,px){const g=c.g;return c.view[0]+(px-g.m.l)/g.pw*(c.view[1]-c.view[0]);}
-
 function bind(c){
   const f=c.fig,pts=new Map();let st=null,gesture=false;
   const pos=e=>{const r=f.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];};
@@ -327,33 +410,31 @@ function bind(c){
     const dx=pos(e)[0]-st.x;if(Math.abs(dx)>5){st.moved=true;gesture=true;hideTip(c);}
     if(st.moved){const k=(st.view[1]-st.view[0])/c.g.pw;setView(c,st.view[0]-dx*k,st.view[1]-dx*k);}});
   const end=e=>{if(!pts.has(e.pointerId))return;pts.delete(e.pointerId);
-    if(pts.size===0){if(st&&!st.pinch&&!st.moved&&!gesture&&e.type==='pointerup')showTip(c,...pos(e));st=null;gesture=false;}
-    else if(pts.size===1){st=null;}};
+    if(pts.size===0){if(st&&!st.pinch&&!st.moved&&!gesture&&e.type==='pointerup')showTip(c,...pos(e));st=null;gesture=false;}else if(pts.size===1)st=null;};
   f.addEventListener('pointerup',end);f.addEventListener('pointercancel',end);
   f.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'&&!pts.size)hideTip(c);});
   f.addEventListener('dblclick',()=>{c.view=baseWin();draw(c);hideTip(c);});
 }
 
-/* ---------- build panels ---------- */
+/* ---------- build ---------- */
 for(const p of document.querySelectorAll('.panel')){
   const id=p.dataset.c,fig=p.querySelector('.fig'),svg=document.createElementNS(NS,'svg');fig.appendChild(svg);
   const tip=document.createElement('div');tip.className='tip';tip.hidden=true;fig.appendChild(tip);
-  const rb=document.createElement('button');rb.type='button';rb.className='reset';rb.hidden=true;fig.appendChild(rb);
+  const rb=document.createElement('button');rb.type='button';rb.className='btn reset';rb.hidden=true;fig.appendChild(rb);
   const c={id,p,fig,svg,tip,resetB:rb,view:baseWin(),collapsed:false};charts[id]=c;
   rb.addEventListener('click',()=>{c.view=baseWin();draw(c);});
   p.querySelector('.col').addEventListener('click',()=>{c.collapsed=!c.collapsed;p.querySelector('.body').classList.toggle('hide',c.collapsed);labels();if(!c.collapsed)draw(c);});
-  const rg=p.querySelector('.rng');for(const [k] of RANGES){const b=document.createElement('button');b.type='button';b.dataset.r=k;b.addEventListener('click',()=>{range=k;for(const x of Object.values(charts)){x.view=baseWin();hideTip(x);}labels();drawAll();});rg.appendChild(b);}
+  const rg=p.querySelector('.rng');for(const [k] of RANGES){const b=document.createElement('button');b.type='button';b.className='btn';b.dataset.r=k;
+    b.addEventListener('click',()=>{range=k;for(const x of Object.values(charts)){x.view=baseWin();hideTip(x);}labels();drawAll();});rg.appendChild(b);}
   bind(c);new ResizeObserver(()=>draw(c)).observe(fig);
 }
-/* overlay checkboxes & mode */
 const chk=document.getElementById('ovChecks');
-for(const k of ['spy','qqq','vix','p20','p50','cnn']){const lb=document.createElement('label');const i=document.createElement('input');i.type='checkbox';i.checked=ovOn.has(k);i.id='ov-'+k;
-  i.addEventListener('change',()=>{i.checked?ovOn.add(k):ovOn.delete(k);draw(charts.ov);hideTip(charts.ov);});
-  const sw=document.createElement('span');sw.className='sw';sw.style.background=`var(${SER[k].c})`;const tx=document.createElement('span');tx.dataset.ser=k;lb.append(i,sw,tx);chk.appendChild(lb);}
+for(const k of ['spy','qqq','vix','p20','p50','cnn']){const lb=document.createElement('label');lb.className='chip';const i=document.createElement('input');i.type='checkbox';i.checked=ovOn.has(k);i.id='ov-'+k;
+  i.addEventListener('change',()=>{i.checked?ovOn.add(k):ovOn.delete(k);lb.classList.toggle('on',i.checked);draw(charts.ov);hideTip(charts.ov);});
+  const sw=document.createElement('span');sw.className='sw';sw.style.background=`var(${SER[k].c})`;const tx=document.createElement('span');tx.dataset.ser=k;lb.append(i,sw,tx);lb.classList.toggle('on',i.checked);chk.appendChild(lb);}
 for(const b of document.querySelectorAll('[data-mode]'))b.addEventListener('click',()=>{ovMode=b.dataset.mode;labels();draw(charts.ov);hideTip(charts.ov);});
-/* legends */
 for(const [id,keys] of [['px',['spy','qqq']],['br',['p20','p50']]]){const lg=charts[id].p.querySelector('.legend');
-  for(const k of keys){const b=document.createElement('button');b.type='button';b.dataset.ser=k;b.dataset.lg=id;
+  for(const k of keys){const b=document.createElement('button');b.type='button';b.className='chip';b.dataset.ser=k;b.dataset.lg=id;
     b.addEventListener('click',()=>{const h=hidden[id];if(h.has(k))h.delete(k);else if(h.size<keys.length-1)h.add(k);labels();draw(charts[id]);hideTip(charts[id]);});lg.appendChild(b);}}
 
 function labels(){
@@ -363,28 +444,20 @@ function labels(){
   for(const b of document.querySelectorAll('.rng button')){b.textContent=t(b.dataset.r);b.classList.toggle('on',b.dataset.r===range);}
   for(const c of Object.values(charts)){c.p.querySelector('.col').textContent=c.collapsed?t('exp'):t('col');c.resetB.textContent=t('reset');}
   for(const b of document.querySelectorAll('[data-mode]'))b.classList.toggle('on',b.dataset.mode===ovMode);
-  for(const s of document.querySelectorAll('[data-ser]')){const k=s.dataset.ser;
-    if(s.dataset.lg){s.innerHTML=`<span class="sw" style="background:var(${SER[k].c})"></span>${SER[k].lab()}`;s.classList.toggle('off',hidden[s.dataset.lg].has(k));}else s.textContent=k==='cnn'?t('cnn'):SER[k].lab();}
-  let hi=0,lo=0;D.cnn.forEach((v,i)=>{if(v==null)return;if(v>D.cnn[hi])hi=i;if(v<D.cnn[lo])lo=i;});
-  let fi=L;while(fi>0&&D.cnn[fi]==null)fi--;const fl=D.cnn[fi];document.getElementById('fgMeta').innerHTML=`<b class="${cFg(fl)}" style="font-size:22px">${f2(fl)} ${t(fgBand(fl))}</b> · ${t('hi')} ${f2(D.cnn[hi])}（${D.d[hi]}，${t(fgBand(D.cnn[hi]))}） · ${t('lo')} ${f2(D.cnn[lo])}（${D.d[lo]}）`;
-  cards();
+  for(const s of document.querySelectorAll('[data-ser]')){const k=s.dataset.ser,name=k==='cnn'?t('cnn'):SER[k].lab();
+    if(s.dataset.lg){s.innerHTML=`<span class="sw" style="background:var(${SER[k].c})"></span>${name}`;s.classList.toggle('off',hidden[s.dataset.lg].has(k));}else s.textContent=name;}
+  cards();side();
 }
 function drawAll(){for(const c of Object.values(charts))if(!c.collapsed)draw(c);}
 document.getElementById('lang').addEventListener('click',()=>{lang=lang==='zh'?'en':'zh';labels();drawAll();for(const c of Object.values(charts))hideTip(c);});
 matchMedia('(max-width:640px)').addEventListener('change',()=>{for(const c of Object.values(charts))hideTip(c);drawAll();});
-matchMedia('(prefers-color-scheme:dark)').addEventListener('change',drawAll);
-new MutationObserver(drawAll).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 
-/* ---------- decorative background: generated candlesticks (not market data) ---------- */
-function bg(){const s=document.getElementById('bg');while(s.firstChild)s.removeChild(s.firstChild);const W=innerWidth,H=innerHeight;s.setAttribute('viewBox',`0 0 ${W} ${H}`);
-  let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;let p=H*.55;const g=css('--green'),r=css('--red');
-  for(let x=10;x<W;x+=14){const o=p,c=o+(rnd()-.52)*34,h=Math.min(o,c)-rnd()*16,l=Math.max(o,c)+rnd()*16;const col=c<o?g:r;
-    el('line',{x1:x,x2:x,y1:h,y2:l,stroke:col,'stroke-width':1},s);el('rect',{x:x-4,y:Math.min(o,c),width:8,height:Math.max(1,Math.abs(c-o)),fill:col},s);p=Math.max(H*.15,Math.min(H*.85,c));}}
-bg();addEventListener('resize',bg);
+/* liquid-glass sheen follows the pointer */
+document.addEventListener('pointermove',e=>{const g=e.target.closest&&e.target.closest('.glass');if(!g)return;const r=g.getBoundingClientRect();g.style.setProperty('--mx',(e.clientX-r.left)+'px');g.style.setProperty('--my',(e.clientY-r.top)+'px');},{passive:true});
 {const m=location.hostname.match(/^([^.]+)\.github\.io$/),r=location.pathname.split('/')[1];if(m&&r)for(const id of ['repoLink','repoLink2'])document.getElementById(id).href=`https://github.com/${m[1]}/${r}/tree/main/data`;}
 
 labels();drawAll();
-}catch(err){document.getElementById('cards').innerHTML='<div class="card">数据加载失败 / Data failed to load：'+String(err)+'</div>';}})();
+}catch(err){document.getElementById('cards').innerHTML='<div class="card glass">数据加载失败 / Data failed to load：'+String(err)+'</div>';}})();
 </script>
 </body>
 </html>
