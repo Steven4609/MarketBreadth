@@ -1,0 +1,52 @@
+# 每个交易日 19:30（美东时间）自动取数并更新看板数据
+# GitHub 的定时只认 UTC，所以写两个时间：
+#   23:30 UTC = 夏令时 19:30 ET；00:30 UTC = 冬令时 19:30 ET
+# 早于纽约 19:15 的那一次会被脚本自动跳过，所以每天实际只更新一次。
+name: Daily update
+
+on:
+  schedule:
+    - cron: "30 23 * * 1-5"
+    - cron: "30 0 * * 2-6"
+  workflow_dispatch:   # 也可以在 Actions 页面手动点 "Run workflow"
+    inputs:
+      force:
+        description: "忽略 19:15 的时间限制，立即更新"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install packages
+        run: pip install yfinance pandas requests lxml
+
+      - name: Fetch data and compute
+        run: python scripts/update_daily.py ${{ inputs.force && '--force' || '' }}
+
+      - name: Save results to the repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then
+            echo "没有新数据，不提交"
+          else
+            git commit -m "data: $(python -c "import json;print(json.load(open('data/latest.json'))['date'])")"
+            git push
+          fi
