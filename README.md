@@ -1,16 +1,16 @@
 # MarketBreadth · 市场宽度和情绪报告
 
-标普 500 市场宽度（参与度）、SPY / QQQ / .VIX 行情与 CNN 恐慌贪婪指数的看板。
+标普 500 市场宽度（参与度）、SPY / QQQ / .VIX 行情、CNN 恐慌贪婪指数与 AAII 散户情绪的报告。
 **每个交易日美东 19:30 自动取数更新**，不需要任何人操作。
 
-- 看板网页：`https://<你的用户名>.github.io/MarketBreadth/`
+- 报告网页：`https://<你的用户名>.github.io/MarketBreadth/`
 - 数据文件：本仓库的 [`data/`](data/) 文件夹（CSV 可直接用 Excel 打开）
 
 ## 文件说明
 
 | 文件 | 内容 |
 |---|---|
-| `index.html` | 看板网页 |
+| `index.html` | 报告网页 |
 | `data/breadth_history_2y.csv` / `.json` | 每日 20 日 / 50 日参与度（`count` = 均线上方只数，`n` = 分母） |
 | `data/cnn_fear_greed_2y.csv` / `.json` | 每日 CNN 恐慌贪婪分数与档位 |
 | `data/overlay_prices.json` | SPY / QQQ / ^VIX 每日原始收盘价 |

@@ -167,7 +167,7 @@ def update_cnn(axis: list[str], missing: list):
 
 # ---------------------------------------------------------------- AAII
 AAII_URL = "https://www.aaii.com/files/surveys/sentiment.xls"
-AAII_START = "2024-10-01"   # 公开仓库只保留看板需要的区间，不转存 AAII 的完整历史
+AAII_START = "2024-10-01"   # 公开仓库只保留报告需要的区间，不转存 AAII 的完整历史
 
 
 def aaii_source() -> list[tuple[str, float, float, float]]:
