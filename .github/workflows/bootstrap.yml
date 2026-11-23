@@ -1,0 +1,51 @@
+# 一次性：生成报告的初始两年历史数据（2024-11-22 至 2026-11-20）
+# 只在从零搭建或彻底重建时手动运行。commit 勾选 = 把结果写进仓库；不勾选 = 只和仓库里现有数据比对，不改任何东西。
+name: Bootstrap history
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: "把生成的数据提交进仓库（不勾选则只比对）"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-update
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install packages
+        run: pip install yfinance pandas requests lxml xlrd
+
+      - name: Build two-year history
+        run: python scripts/bootstrap_history.py
+
+      - name: Compare with the data already in the repository
+        if: ${{ !inputs.commit }}
+        run: |
+          for f in overlay_prices.json breadth_history_2y.csv breadth_history_2y.json cnn_fear_greed_2y.csv cnn_fear_greed_2y.json aaii.csv aaii.json; do
+            if git diff --quiet -- "data/$f"; then echo "相同  $f"; else echo "不同  $f"; fi
+          done
+          git diff -U0 -- data/breadth_history_2y.csv | head -40
+
+      - name: Save results to the repository
+        if: ${{ inputs.commit }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || (git commit -m "data: bootstrap two-year history" && git push)
