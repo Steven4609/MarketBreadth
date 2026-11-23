@@ -11,14 +11,19 @@
 | 文件 | 内容 |
 |---|---|
 | `index.html` | 报告网页 |
+| `bg-market.jpg` | 背景照片（Nicholas Cappello / Unsplash） |
 | `data/breadth_history_2y.csv` / `.json` | 每日 20 日 / 50 日参与度（`count` = 均线上方只数，`n` = 分母） |
 | `data/cnn_fear_greed_2y.csv` / `.json` | 每日 CNN 恐慌贪婪分数与档位 |
 | `data/overlay_prices.json` | SPY / QQQ / ^VIX 每日原始收盘价 |
+| `data/aaii.csv` / `.json` | AAII 散户情绪调查每周看多 / 中性 / 看空（只保留 2024-10-31 起） |
 | `data/details/breadth_YYYY-MM-DD.csv` | 当天每只成分股的收盘价、SMA20、SMA50、是否在均线上方 |
 | `data/latest.json` | 最近一次更新的日期、数值、**缺失说明** |
 | `data/dashboard_data.json` | 网页读取的合并数据（由脚本自动生成，不用手动改） |
 | `scripts/update_daily.py` | 每日取数与计算脚本 |
-| `.github/workflows/daily-update.yml` | 定时任务设置 |
+| `scripts/bootstrap_history.py` | 一次性生成两年历史数据 |
+| `scripts/sp500_members_2026-11-20.txt` | 历史数据使用的固定成分股名单（503 只） |
+| `.github/workflows/daily-update.yml` | 每日定时任务 |
+| `.github/workflows/bootstrap.yml` | 一次性历史生成任务（不勾选提交时只比对） |
 
 ## 口径
 
@@ -26,6 +31,7 @@
   只计历史足够长、且当天有收盘价的票。成分股用当天的 Wikipedia 名单，历史读数有幸存者偏差。
 - **价格** = Yahoo Finance 原始收盘价（只复权拆股，不复权分红），与 Bloomberg / TradingView 同口径。
 - **CNN** = CNN 官方端点；取不到时用 GitHub `whit3rabbit/fear-greed-data`。
+- **AAII** = AAII 官网 sentiment.xls，每周四公布；数据版权归 AAII，仅供个人参考。
 - 取不到的数据**不插值、不补数**，写进 `data/latest.json` 的 `missing`。
   某天没取到的数据，之后的运行会在源头有数据时自动补上（最多回补 40 个交易日）。
 
