@@ -2,12 +2,13 @@
 
 做什么：
   1. 价格：yfinance 拉 SPY / QQQ / ^VIX 原始收盘价（auto_adjust=False 的 Close），追加新交易日。
-  2. CNN 恐慌贪婪：先用 CNN 官方端点，失败则用 GitHub whit3rabbit/fear-greed-data，追加新交易日。
+  2. CNN 恐慌贪婪：只用 CNN 官方端点，追加新交易日。
   3. 参与度：Wikipedia 当日标普 500 名单 + yfinance 原始收盘价，
      算收盘价严格高于自身 SMA20 / SMA50 的占比，追加新交易日，并保存逐只明细。
   4. 重建 data/dashboard_data.json（网页读这一份）和 data/latest.json。
 
-原则：只追加，不改历史；取不到就写进 missing，绝不插值补数。
+原则：已定稿的历史锁定，与官方不一致只记录并通知（见下方“历史核对”），确认后才修改；
+取不到就写进 missing，绝不插值补数。
 时间轴 = SPY 的交易日；.VIX 在休市日的值不进入。
 没赶上的日子（例如某天 Yahoo 限流）在之后的运行中会自动补算，只要源头还有数据。
 """
@@ -17,6 +18,7 @@ import csv
 import datetime as dt
 import io
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -48,8 +50,67 @@ F_FG_CSV = DATA / "cnn_fear_greed_2y.csv"
 F_FG_JSON = DATA / "cnn_fear_greed_2y.json"
 F_AAII_CSV = DATA / "aaii.csv"
 F_AAII_JSON = DATA / "aaii.json"
+F_STATE = DATA / "verify_state.json"   # 初值清单、待确认差异、已通知记录
 F_DASH = DATA / "dashboard_data.json"
 F_LATEST = DATA / "latest.json"
+
+
+# ---------------------------------------------------------------- 历史核对
+# 规则：已定稿的历史数据锁定不动。每次运行都把能取到的近期官方数据与本地历史对比，
+# 不一致只记录进 verify_state.json 的 pending、并开 GitHub Issue 通知，不自动修改；
+# 只有手动运行时勾选 accept，才把仍然成立的差异改成官方值。
+# 例外是"初值"：写入时就知道尚未定稿的数据（CNN 最新两天、用收盘后实时报价补的收盘价、
+# 用这些收盘价算的参与度），它们之后从同一官方来源自动定稿，日志里注明。
+ACCEPT = "--accept" in sys.argv
+REVISIONS: list[str] = []
+STATE: dict = {}
+CHECKED: set = set()       # 本次运行核对过的 (类别, 名称, 日期)
+FOUND: dict = {}           # 本次发现的差异 key -> 记录
+
+
+def load_state():
+    global STATE
+    STATE = json.loads(F_STATE.read_text()) if F_STATE.exists() else {}
+    STATE.setdefault("provisional", {})
+    for k in ("price", "cnn", "breadth"):
+        STATE["provisional"].setdefault(k, [])
+    STATE.setdefault("pending", [])
+    STATE.setdefault("reported", [])
+
+
+def prov(kind: str) -> list:
+    return STATE["provisional"][kind]
+
+
+def differ(kind: str, name: str, date: str, stored, official) -> bool:
+    """记录一处与官方不一致。返回 True 表示应改成官方值（仅 accept 且此前已通知过）。"""
+    key = f"{kind}|{name}|{date}|{official}"
+    if ACCEPT and key in {x["key"] for x in STATE["pending"]}:
+        REVISIONS.append(f"按确认采用官方值：{kind} {name} {date} {stored} → {official}")
+        return True
+    FOUND[key] = {"key": key, "kind": kind, "name": name, "date": date, "stored": stored, "official": official}
+    return False
+
+
+def finish_state():
+    today = dt.datetime.now(NY).date().isoformat()
+    old = {x["key"]: x for x in STATE["pending"]}
+    keep = [x for x in STATE["pending"] if (x["kind"], x["name"], x["date"]) not in CHECKED and x["key"] not in FOUND]
+    cur = [{**v, "first_seen": old.get(k, {}).get("first_seen", today)} for k, v in FOUND.items()]
+    STATE["pending"] = sorted(keep + cur, key=lambda x: (x["date"], x["kind"], x["name"]))
+    new = [x for x in STATE["pending"] if x["key"] not in STATE["reported"]]
+    STATE["reported"] = sorted(set(STATE["reported"]) | {x["key"] for x in new})
+    F_STATE.write_text(json.dumps(STATE, ensure_ascii=False, indent=1))
+    if new:
+        path = Path(os.environ.get("RUNNER_TEMP", "/tmp")) / "diff_issue.md"
+        lines = ["每日核对发现以下历史数据与官方来源不一致。**没有自动修改**，仍保留原值。", "",
+                 "| 类别 | 项目 | 日期 | 本地保存 | 官方现值 |", "|---|---|---|---|---|"]
+        lines += [f"| {x['kind']} | {x['name']} | {x['date']} | {x['stored']} | {x['official']} |" for x in new]
+        lines += ["", f"目前待确认差异共 {len(STATE['pending'])} 处。",
+                  "", "处理方法：确认采用官方值 → Actions → Daily update → Run workflow，勾选 accept 运行；"
+                  "保留原值 → 不用操作（同一差异不会重复通知）。"]
+        path.write_text("\n".join(lines))
+        log(f"核对：新发现 {len(new)} 处与官方不一致，已写入通知")
 
 
 def log(*a):
@@ -142,19 +203,41 @@ def ny_close_day() -> str | None:
 # ---------------------------------------------------------------- prices
 def update_prices(missing: list) -> list[str]:
     prices = json.loads(F_PRICES.read_text())
-    df = download(["SPY", "QQQ", "^VIX"], period="1mo")
-    ser = {t: closes(df, t) for t in ["SPY", "QQQ", "^VIX"]}
+    df = download(["SPY", "QQQ", "^VIX"], period="3mo")
+    bars = {t: closes(df, t) for t in ["SPY", "QQQ", "^VIX"]}      # Yahoo 日 K 线（官方定稿值）
+    ser = {t: s.copy() for t, s in bars.items()}
     today = ny_close_day()
+    patched = []
     if today:
-        fixed = patch_today(ser, ["SPY", "QQQ", "^VIX"], today)
-        if fixed:
-            log(f"价格：{today} 日 K 线收盘价为空，改用收盘后实时报价：{fixed}")
+        patched = patch_today(ser, ["SPY", "QQQ", "^VIX"], today)
+        if patched:
+            log(f"价格：{today} 日 K 线收盘价为空，改用收盘后实时报价：{patched}")
     spy = ser["SPY"]
     if spy.empty:
         missing.append("价格：Yahoo 未返回 SPY 数据，本次不更新任何价格")
         return [d for d, _ in prices["SPY"]]
-    have = {k: {d for d, _ in v} for k, v in prices.items()}
-    last_known = max(have["SPY"])
+    changed = False
+    # 1) 初值定稿：之前用实时报价补的收盘价，日 K 线出来后改成日 K 线值
+    for d in list(prov("price")):
+        if all(d in bars[t].index for t in bars):
+            for t in bars:
+                new = round(float(bars[t][d]), 2)
+                for row in prices[t]:
+                    if row[0] == d and abs(row[1] - new) > 0.001:
+                        REVISIONS.append(f"价格初值定稿：{t} {d} {row[1]} → {new}")
+                        row[1] = new; changed = True
+            prov("price").remove(d)
+    # 2) 已定稿历史与官方日 K 线对比：不一致只记录
+    for t in bars:
+        for row in prices[t]:
+            d = row[0]
+            if d in bars[t].index and d not in prov("price"):
+                CHECKED.add(("价格", t, d))
+                off = round(float(bars[t][d]), 2)
+                if abs(off - row[1]) > 0.011 and differ("价格", t, d, row[1], off):
+                    row[1] = off; changed = True
+    # 3) 追加新交易日
+    last_known = max(d for d, _ in prices["SPY"])
     new_dates = [d for d in spy.index if d > last_known]
     for t in ["SPY", "QQQ", "^VIX"]:
         s = ser[t]
@@ -164,7 +247,9 @@ def update_prices(missing: list) -> list[str]:
             else:
                 missing.append(f"价格：{t} 缺 {d}")
         prices[t].sort()
-    if new_dates:  # 没有新数据就不重写文件；格式与初始文件一致
+    if today in new_dates and patched and today not in prov("price"):
+        prov("price").append(today)
+    if new_dates or changed:  # 没有变化就不重写文件；格式与初始文件一致
         F_PRICES.write_text(json.dumps(prices))
     log(f"价格：新增 {len(new_dates)} 天 {new_dates}")
     return [d for d, _ in prices["SPY"]]
@@ -172,60 +257,60 @@ def update_prices(missing: list) -> list[str]:
 
 # ---------------------------------------------------------------- CNN
 def cnn_source() -> dict[str, float]:
+    """只用 CNN 官方端点；取不到就算缺失，不用第三方数据。"""
     try:
         r = requests.get("https://production.dataviz.cnn.io/index/fearandgreed/graphdata",
                          headers={**UA, "Referer": "https://www.cnn.com/markets/fear-and-greed",
                                   "Origin": "https://www.cnn.com"}, timeout=30)
         r.raise_for_status()
         pts = r.json()["fear_and_greed_historical"]["data"]
-        out = {dt.datetime.fromtimestamp(p["x"] / 1000, dt.timezone.utc).strftime("%Y-%m-%d"): float(p["y"])
-               for p in pts}
-        log(f"CNN：官方端点 {len(out)} 点")
+        out = {}
+        for p in pts:  # 同一日期有多个点时，只认当天 00:00 UTC 的那个日点
+            t = dt.datetime.fromtimestamp(p["x"] / 1000, dt.timezone.utc)
+            d = t.strftime("%Y-%m-%d")
+            if t.hour == 0 and t.minute == 0 or d not in out:
+                out[d] = float(p["y"])
+        log(f"CNN：官方端点 {len(out)} 个日期")
         return out
     except Exception as e:  # noqa: BLE001
-        log(f"CNN：官方端点失败（{e}），改用 GitHub 数据集")
-    try:
-        r = requests.get("https://raw.githubusercontent.com/whit3rabbit/fear-greed-data/main/fear-greed.csv",
-                         headers=UA, timeout=30)
-        r.raise_for_status()
-        d = pd.read_csv(io.StringIO(r.text))
-        out = {str(a): float(b) for a, b in zip(d.iloc[:, 0], d.iloc[:, 1])}
-        log(f"CNN：GitHub 数据集 {len(out)} 点")
-        return out
-    except Exception as e:  # noqa: BLE001
-        log(f"CNN：GitHub 数据集也失败（{e}）")
+        log(f"CNN：官方端点失败（{e}）")
         return {}
 
 
-REVISIONS: list[str] = []   # 本次运行同步的源头修订，写进 latest.json
-
-
 def update_cnn(axis: list[str], missing: list):
-    """CNN 最近一两天的读数是初值，之后会被 CNN 修订（2026-11-20 实测：9.67 → 18.59）。
-    所以每次运行：
-      1. 源头里除最新两个日期之外的日子视为定稿；与本地不同（超过四舍五入误差）就改成 CNN 的值，并记录；
-      2. 时间轴上还没有 CNN 值的交易日，用源头当前值追加（最新两天是初值，之后的运行会再同步）。"""
+    """CNN 最新两个日期是初值（之后会被 CNN 修订，2026-11-20 实测 9.67 → 18.59）。"""
     rows = json.loads(F_FG_JSON.read_text())
     have = {r["date"]: r for r in rows}
     src = cnn_source()
     if not src:
         if axis[-1] not in have:
-            missing.append(f"CNN：源头暂无 {axis[-1]} 的数据")
+            missing.append(f"CNN：官方端点暂无 {axis[-1]} 的数据")
         return
-    final = set(sorted(src)[:-2])
-    revised = []
-    for d, r in have.items():
-        if d in final and abs(src[d] - r["score"]) > 0.006:
+    order = sorted(src)
+    latest2, final = set(order[-2:]), set(order[:-2])
+    changed = False
+    for d in list(prov("cnn")):                      # 初值定稿
+        if d in final and d in have:
             new = round(src[d], 2)
-            revised.append(f"{d} {r['score']} → {new}")
-            r["score"], r["rating"] = new, fg_rating(new)
+            if abs(have[d]["score"] - new) > 0.006:
+                REVISIONS.append(f"CNN 初值定稿：{d} {have[d]['score']} → {new}")
+                have[d]["score"], have[d]["rating"] = new, fg_rating(new); changed = True
+            prov("cnn").remove(d)
+    for d, r in have.items():                        # 已定稿历史对比
+        if d in final and d not in prov("cnn"):
+            CHECKED.add(("CNN", "恐慌贪婪指数", d))
+            new = round(src[d], 2)
+            if abs(src[d] - r["score"]) > 0.006 and differ("CNN", "恐慌贪婪指数", d, r["score"], new):
+                r["score"], r["rating"] = new, fg_rating(new); changed = True
     added = []
-    for d in axis[-BACKFILL_DAYS:]:
+    for d in axis[-BACKFILL_DAYS:]:                  # 追加新交易日
         if d not in have and d in src:
             s = round(src[d], 2)
             rows.append({"date": d, "score": s, "rating": fg_rating(s)})
             added.append(d)
-    if revised or added:
+            if d in latest2:
+                prov("cnn").append(d)
+    if changed or added:
         rows.sort(key=lambda r: r["date"])
         F_FG_JSON.write_text(json.dumps(rows))
         with F_FG_CSV.open("w", newline="") as f:
@@ -233,12 +318,9 @@ def update_cnn(axis: list[str], missing: list):
             w.writerow(["date", "score", "rating"])
             for r in rows:
                 w.writerow([r["date"], r["score"], r["rating"]])
-    if revised:
-        REVISIONS.extend(f"CNN 修订 {x}" for x in revised)
-        log(f"CNN：同步源头修订 {revised}")
-    log(f"CNN：新增 {added}")
+    log(f"CNN：新增 {added}；初值待定稿 {prov('cnn')}")
     if axis[-1] not in have and axis[-1] not in added:
-        missing.append(f"CNN：源头暂无 {axis[-1]} 的数据")
+        missing.append(f"CNN：官方端点暂无 {axis[-1]} 的数据")
 
 
 # ---------------------------------------------------------------- AAII
@@ -269,13 +351,27 @@ def update_aaii(missing: list):
     except Exception as e:  # noqa: BLE001
         missing.append(f"AAII：下载失败（{e}）")
         return
+    off = {r[0]: r for r in src}
+    changed = False
+    for r in rows:                                   # 已有历史对比
+        o = off.get(r["date"])
+        if o is None:
+            continue
+        CHECKED.add(("AAII", "看多/中性/看空", r["date"]))
+        mine = (r["bullish"], r["neutral"], r["bearish"])
+        if any(abs(a - b) > 0.05 for a, b in zip(mine, o[1:])):
+            if differ("AAII", "看多/中性/看空", r["date"], "/".join(map(str, mine)), "/".join(map(str, o[1:]))):
+                r["bullish"], r["neutral"], r["bearish"] = o[1:]; changed = True
     new = [r for r in src if r[0] > last and r[0] >= AAII_START]
     for d, b, n, s in new:
         rows.append({"date": d, "bullish": b, "neutral": n, "bearish": s})
-        with F_AAII_CSV.open("a", newline="") as f:
-            csv.writer(f).writerow([d, b, n, s, round(b - s, 1)])
-    if new:
+    if new or changed:
         F_AAII_JSON.write_text(json.dumps(rows))
+        with F_AAII_CSV.open("w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["date", "bullish", "neutral", "bearish", "spread"])
+            for r in rows:
+                w.writerow([r["date"], r["bullish"], r["neutral"], r["bearish"], round(r["bullish"] - r["bearish"], 1)])
     log(f"AAII：新增 {[r[0] for r in new]}")
 
 
@@ -291,15 +387,17 @@ def update_breadth(axis: list[str], missing: list):
     rows = json.loads(F_BR_JSON.read_text())
     have = {r["date"] for r in rows}
     targets = [d for d in axis[-BACKFILL_DAYS:] if d not in have]
-    if not targets:
+    recheck = [d for d in prov("breadth") if d in have]   # 用实时报价算的初值，K 线定稿后重算
+    if not targets and not recheck:
         return
     try:
         syms = sp500()
     except Exception as e:  # noqa: BLE001
         missing.append(f"参与度：Wikipedia 名单获取失败（{e}）")
         return
-    start = (dt.date.fromisoformat(targets[0]) - dt.timedelta(days=130)).isoformat()
-    end = (dt.date.fromisoformat(targets[-1]) + dt.timedelta(days=1)).isoformat()
+    span = sorted(targets + recheck)
+    start = (dt.date.fromisoformat(span[0]) - dt.timedelta(days=130)).isoformat()
+    end = (dt.date.fromisoformat(span[-1]) + dt.timedelta(days=1)).isoformat()
     series: dict[str, pd.Series] = {}
     todo = list(syms)
     for rnd in range(2):  # 第二轮只重试第一轮没拿到的票
@@ -316,6 +414,7 @@ def update_breadth(axis: list[str], missing: list):
         if not todo:
             break
     today = ny_close_day()
+    fixed = []
     if today and today in targets:
         fixed = patch_today(series, syms, today)
         if fixed:
@@ -325,7 +424,8 @@ def update_breadth(axis: list[str], missing: list):
         return
 
     added = []
-    for d in targets:
+    csv_rows = None
+    for d in span:
         a20 = n20 = a50 = n50 = 0
         detail = []
         for s in syms:
@@ -345,12 +445,30 @@ def update_breadth(axis: list[str], missing: list):
             detail.append([s, d, round(px, 4), "" if m20 is None else round(m20, 4),
                            "" if m50 is None else round(m50, 4), n, up20, up50])
         if n20 < MIN_STOCKS or n50 < MIN_STOCKS:
-            missing.append(f"参与度：{d} 当天有收盘价的成分股太少（{n20}），未写入")
+            if d in recheck:
+                log(f"参与度：{d} 的日 K 线还没定稿，初值保留，下次再核")
+            else:
+                missing.append(f"参与度：{d} 当天有收盘价的成分股太少（{n20}），未写入")
             continue
         p20, p50 = round(a20 / n20 * 100, 2), round(a50 / n50 * 100, 2)
-        rows.append({"date": d, "p20": p20, "p50": p50})
-        with F_BR_CSV.open("a", newline="") as f:
-            csv.writer(f).writerow([d, p20, p50, a20, n20, a50, n50])
+        if d in recheck:   # 初值定稿：K 线出来后重算，结果不同就替换这一行
+            if csv_rows is None:
+                with F_BR_CSV.open() as f:
+                    csv_rows = list(csv.reader(f))
+            for cr in csv_rows[1:]:
+                if cr[0] == d and [int(cr[3]), int(cr[4]), int(cr[5]), int(cr[6])] != [a20, n20, a50, n50]:
+                    REVISIONS.append(f"参与度初值定稿：{d} {cr[3]}/{cr[4]} · {cr[5]}/{cr[6]} → {a20}/{n20} · {a50}/{n50}")
+                    cr[1:] = [p20, p50, a20, n20, a50, n50]
+                    for r in rows:
+                        if r["date"] == d:
+                            r["p20"], r["p50"] = p20, p50
+            prov("breadth").remove(d)
+        else:
+            rows.append({"date": d, "p20": p20, "p50": p50})
+            with F_BR_CSV.open("a", newline="") as f:
+                csv.writer(f).writerow([d, p20, p50, a20, n20, a50, n50])
+            if d == today and fixed:
+                prov("breadth").append(d)
         DETAILS.mkdir(parents=True, exist_ok=True)
         with (DETAILS / f"breadth_{d}.csv").open("w", newline="") as f:
             w = csv.writer(f)
@@ -360,8 +478,12 @@ def update_breadth(axis: list[str], missing: list):
         if nodata:
             missing.append(f"参与度 {d}：{len(nodata)} 只无当日收盘价未计入（{', '.join(nodata[:20])}"
                            f"{' 等' if len(nodata) > 20 else ''}）")
-        added.append(d)
+        if d not in recheck:
+            added.append(d)
         log(f"参与度 {d}：20日 {a20}/{n20}={p20}%  50日 {a50}/{n50}={p50}%")
+    if csv_rows is not None:
+        with F_BR_CSV.open("w", newline="") as f:
+            csv.writer(f).writerows(csv_rows)
     rows.sort(key=lambda r: r["date"])
     F_BR_JSON.write_text(json.dumps(rows))
 
@@ -390,7 +512,9 @@ def build_outputs(missing: list):
         "cnn": fg.get(last),
         "breadth": None if not b else {"p20": round(b[0] / b[1] * 100, 2), "p50": round(b[2] / b[3] * 100, 2),
                                        "count20": b[0], "n20": b[1], "count50": b[2], "n50": b[3]},
-        "missing": missing, "revisions": REVISIONS}, ensure_ascii=False, indent=1))
+        "missing": missing, "revisions": REVISIONS,
+        "pending": [f"{x['kind']} {x['name']} {x['date']}：本地 {x['stored']} / 官方 {x['official']}" for x in STATE.get("pending", [])],
+        "provisional": STATE.get("provisional", {})}, ensure_ascii=False, indent=1))
 
 
 def check_sources():
@@ -432,20 +556,26 @@ def main():
     force = "--force" in sys.argv
     now = dt.datetime.now(NY)
     log(f"运行时间（纽约）：{now:%Y-%m-%d %H:%M}")
-    # CNN 当天的最终值约 19:00 ET 才定格；早于 19:15 的运行不写当天数据
+    # 收盘后一段时间内数据仍在变化；早于 19:15 的运行不写当天数据
     if not force and now.weekday() < 5 and now.time() < dt.time(19, 15):
         prices = json.loads(F_PRICES.read_text())
         if prices["SPY"][-1][0] < now.date().isoformat():
-            log("纽约时间未到 19:15，今天的 CNN 最终值还没出，本次跳过（另一个定时会在 19:30 运行）")
+            log("纽约时间未到 19:15，本次跳过（另一个定时会在 19:30 运行）")
             return
     missing: list[str] = []
-    srcs = [F_PRICES, F_FG_JSON, F_BR_JSON, F_AAII_JSON]
-    before = [p.read_bytes() for p in srcs]
+    load_state()
+    srcs = [F_PRICES, F_FG_JSON, F_BR_JSON, F_AAII_JSON, F_STATE]
+    before = [p.read_bytes() if p.exists() else b"" for p in srcs]
     axis = update_prices(missing)
     update_cnn(axis, missing)
     update_breadth(axis, missing)
     update_aaii(missing)
-    if [p.read_bytes() for p in srcs] == before and F_DASH.exists() and "--rebuild" not in sys.argv:
+    finish_state()
+    if REVISIONS:
+        log("修订：" + "；".join(REVISIONS))
+    if STATE["pending"]:
+        log(f"待确认差异 {len(STATE['pending'])} 处（未修改）")
+    if [p.read_bytes() if p.exists() else b"" for p in srcs] == before and F_DASH.exists() and "--rebuild" not in sys.argv:
         log("没有任何新数据（周末、休市日，或今天已更新过），不改动文件")
         if missing:
             log("缺失：" + "；".join(missing))

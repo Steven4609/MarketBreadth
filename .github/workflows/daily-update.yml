@@ -18,9 +18,14 @@ on:
         description: "只检查数据源能否连通，不写任何数据"
         type: boolean
         default: false
+      accept:
+        description: "确认采用官方值：把 Issue 里列出的待确认差异改成官方现值"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: daily-update
@@ -41,7 +46,7 @@ jobs:
         run: pip install yfinance pandas requests lxml xlrd curl_cffi
 
       - name: Fetch data and compute
-        run: python scripts/update_daily.py ${{ inputs.force && '--force' || '' }} ${{ inputs.check && '--check' || '' }}
+        run: python scripts/update_daily.py ${{ inputs.force && '--force' || '' }} ${{ inputs.check && '--check' || '' }} ${{ inputs.accept && '--accept' || '' }}
 
       - name: Save results to the repository
         run: |
@@ -53,4 +58,12 @@ jobs:
           else
             git commit -m "data: $(python -c "import json;print(json.load(open('data/latest.json'))['date'])")"
             git push
+          fi
+
+      - name: Notify about differences from official data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -f "$RUNNER_TEMP/diff_issue.md" ]; then
+            gh issue create --title "数据核对：$(TZ=America/New_York date +%F) 发现与官方数据不一致" --body-file "$RUNNER_TEMP/diff_issue.md"
           fi

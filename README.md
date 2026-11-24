@@ -18,6 +18,7 @@
 | `data/aaii.csv` / `.json` | AAII 散户情绪调查每周看多 / 中性 / 看空（只保留 2024-10-31 起） |
 | `data/details/breadth_YYYY-MM-DD.csv` | 当天每只成分股的收盘价、SMA20、SMA50、是否在均线上方 |
 | `data/latest.json` | 最近一次更新的日期、数值、**缺失说明** |
+| `data/verify_state.json` | 历史核对状态：尚未定稿的初值、待确认的差异、已通知记录 |
 | `data/dashboard_data.json` | 网页读取的合并数据（由脚本自动生成，不用手动改） |
 | `scripts/update_daily.py` | 每日取数与计算脚本 |
 | `scripts/bootstrap_history.py` | 一次性生成两年历史数据 |
@@ -38,6 +39,7 @@
 ## 日常怎么用
 
 - **看更新有没有成功**：点仓库顶部的 **Actions** 标签，绿色对勾 = 成功，红叉 = 失败（点进去能看到原因）。
+- **历史核对**：已定稿的数据锁定。每次运行都与官方数据对比，不一致时**不自动修改**，而是在仓库开一个 Issue 通知（GitHub 会发邮件）。确认采用官方值：Actions → Daily update → Run workflow，勾选 accept。保留原值则不用操作。
 - **手动立即更新一次**：Actions → 左侧 **Daily update** → 右侧 **Run workflow**（勾选 force 可忽略 19:15 的时间限制）。
 - **把数据下载到电脑**：点进任意 CSV → 右上角下载按钮；或仓库首页绿色 **Code** 按钮 → **Download ZIP**。
 - 周末和美股休市日不会有新数据，这是正常的。
