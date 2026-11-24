@@ -197,27 +197,45 @@ def cnn_source() -> dict[str, float]:
         return {}
 
 
+REVISIONS: list[str] = []   # 本次运行同步的源头修订，写进 latest.json
+
+
 def update_cnn(axis: list[str], missing: list):
+    """CNN 最近一两天的读数是初值，之后会被 CNN 修订（2026-11-20 实测：9.67 → 18.59）。
+    所以每次运行：
+      1. 源头里除最新两个日期之外的日子视为定稿；与本地不同（超过四舍五入误差）就改成 CNN 的值，并记录；
+      2. 时间轴上还没有 CNN 值的交易日，用源头当前值追加（最新两天是初值，之后的运行会再同步）。"""
     rows = json.loads(F_FG_JSON.read_text())
-    have = {r["date"] for r in rows}
-    targets = [d for d in axis[-BACKFILL_DAYS:] if d not in have]
-    if not targets:
-        return
+    have = {r["date"]: r for r in rows}
     src = cnn_source()
+    if not src:
+        if axis[-1] not in have:
+            missing.append(f"CNN：源头暂无 {axis[-1]} 的数据")
+        return
+    final = set(sorted(src)[:-2])
+    revised = []
+    for d, r in have.items():
+        if d in final and abs(src[d] - r["score"]) > 0.006:
+            new = round(src[d], 2)
+            revised.append(f"{d} {r['score']} → {new}")
+            r["score"], r["rating"] = new, fg_rating(new)
     added = []
-    for d in targets:
-        if d in src:
+    for d in axis[-BACKFILL_DAYS:]:
+        if d not in have and d in src:
             s = round(src[d], 2)
             rows.append({"date": d, "score": s, "rating": fg_rating(s)})
             added.append(d)
-    if added:
+    if revised or added:
         rows.sort(key=lambda r: r["date"])
         F_FG_JSON.write_text(json.dumps(rows))
-        with F_FG_CSV.open("a", newline="") as f:
+        with F_FG_CSV.open("w", newline="") as f:
             w = csv.writer(f)
+            w.writerow(["date", "score", "rating"])
             for r in rows:
-                if r["date"] in added:
-                    w.writerow([r["date"], r["score"], r["rating"]])
+                w.writerow([r["date"], r["score"], r["rating"]])
+    if revised:
+        REVISIONS.extend(f"CNN 修订 {x}" for x in revised)
+        log(f"CNN：同步源头修订 {revised}")
     log(f"CNN：新增 {added}")
     if axis[-1] not in have and axis[-1] not in added:
         missing.append(f"CNN：源头暂无 {axis[-1]} 的数据")
@@ -372,7 +390,7 @@ def build_outputs(missing: list):
         "cnn": fg.get(last),
         "breadth": None if not b else {"p20": round(b[0] / b[1] * 100, 2), "p50": round(b[2] / b[3] * 100, 2),
                                        "count20": b[0], "n20": b[1], "count50": b[2], "n50": b[3]},
-        "missing": missing}, ensure_ascii=False, indent=1))
+        "missing": missing, "revisions": REVISIONS}, ensure_ascii=False, indent=1))
 
 
 def check_sources():
