@@ -1,11 +1,27 @@
 {
  "provisional": {
   "price": [],
-  "cnn": [
-   "2026-11-23"
-  ],
+  "cnn": [],
   "breadth": []
  },
  "pending": [],
- "reported": []
+ "reported": [],
+ "kept": [
+  {
+   "kind": "CNN",
+   "name": "恐慌贪婪指数",
+   "date": "2026-11-20",
+   "stored": 9.67,
+   "official": 18.59,
+   "reason": "用户确认保留：11-20 收盘后 CNN 显示 9.67，当日媒体报道 9.7（24/7 Wall St. 引 Kobeissi；Benzinga 约 10）；CNN 历史后来改为 18.59"
+  },
+  {
+   "kind": "CNN",
+   "name": "恐慌贪婪指数",
+   "date": "2026-11-23",
+   "stored": 16.97,
+   "official": 16.04,
+   "reason": "保留收盘后读数 16.97（= CNN 次日 previous_close）；16.04 是 11-24 盘前实时读数被写进 11-23 历史点"
+  }
+ ]
 }

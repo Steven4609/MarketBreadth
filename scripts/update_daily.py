@@ -59,8 +59,10 @@ F_LATEST = DATA / "latest.json"
 # 规则：已定稿的历史数据锁定不动。每次运行都把能取到的近期官方数据与本地历史对比，
 # 不一致只记录进 verify_state.json 的 pending、并开 GitHub Issue 通知，不自动修改；
 # 只有手动运行时勾选 accept，才把仍然成立的差异改成官方值。
-# 例外是"初值"：写入时就知道尚未定稿的数据（CNN 最新两天、用收盘后实时报价补的收盘价、
-# 用这些收盘价算的参与度），它们之后从同一官方来源自动定稿，日志里注明。
+# 例外是"初值"：用收盘后实时报价补的收盘价、以及用这些收盘价算的参与度，
+# 等 Yahoo 日 K 线出来后自动定稿，日志里注明。
+# CNN 不设初值：取收盘后（美东 19:30）CNN 显示的读数并锁定。CNN 事后会把历史点改成更晚时刻的读数
+# （2026-11-20 收盘后为 9.67、媒体当日报道 9.7，CNN 历史后来显示 18.59），这类改动只通知、不自动采用。
 ACCEPT = "--accept" in sys.argv
 REVISIONS: list[str] = []
 STATE: dict = {}
@@ -76,6 +78,7 @@ def load_state():
         STATE["provisional"].setdefault(k, [])
     STATE.setdefault("pending", [])
     STATE.setdefault("reported", [])
+    STATE.setdefault("kept", [])   # 已确认保留本地值、不采用官方改动的条目
 
 
 def prov(kind: str) -> list:
@@ -85,6 +88,9 @@ def prov(kind: str) -> list:
 def differ(kind: str, name: str, date: str, stored, official) -> bool:
     """记录一处与官方不一致。返回 True 表示应改成官方值（仅 accept 且此前已通知过）。"""
     key = f"{kind}|{name}|{date}|{official}"
+    if any(k["kind"] == kind and k["name"] == name and k["date"] == date and k["official"] == official
+           for k in STATE["kept"]):
+        return False   # 已确认保留本地值；官方若再改成别的数，会作为新差异再通知
     if ACCEPT and key in {x["key"] for x in STATE["pending"]}:
         REVISIONS.append(f"按确认采用官方值：{kind} {name} {date} {stored} → {official}")
         return True
@@ -278,7 +284,7 @@ def cnn_source() -> dict[str, float]:
 
 
 def update_cnn(axis: list[str], missing: list):
-    """CNN 最新两个日期是初值（之后会被 CNN 修订，2026-11-20 实测 9.67 → 18.59）。"""
+    """取 CNN 官方端点当前的读数追加新交易日并锁定；之后 CNN 对历史点的改动只通知、不自动采用。"""
     rows = json.loads(F_FG_JSON.read_text())
     have = {r["date"]: r for r in rows}
     src = cnn_source()
@@ -289,15 +295,9 @@ def update_cnn(axis: list[str], missing: list):
     order = sorted(src)
     latest2, final = set(order[-2:]), set(order[:-2])
     changed = False
-    for d in list(prov("cnn")):                      # 初值定稿
-        if d in final and d in have:
-            new = round(src[d], 2)
-            if abs(have[d]["score"] - new) > 0.006:
-                REVISIONS.append(f"CNN 初值定稿：{d} {have[d]['score']} → {new}")
-                have[d]["score"], have[d]["rating"] = new, fg_rating(new); changed = True
-            prov("cnn").remove(d)
-    for d, r in have.items():                        # 已定稿历史对比
-        if d in final and d not in prov("cnn"):
+    prov("cnn").clear()
+    for d, r in have.items():                        # 历史对比（最新两个点仍在变动，不比）
+        if d in final:
             CHECKED.add(("CNN", "恐慌贪婪指数", d))
             new = round(src[d], 2)
             if abs(src[d] - r["score"]) > 0.006 and differ("CNN", "恐慌贪婪指数", d, r["score"], new):
@@ -308,8 +308,6 @@ def update_cnn(axis: list[str], missing: list):
             s = round(src[d], 2)
             rows.append({"date": d, "score": s, "rating": fg_rating(s)})
             added.append(d)
-            if d in latest2:
-                prov("cnn").append(d)
     if changed or added:
         rows.sort(key=lambda r: r["date"])
         F_FG_JSON.write_text(json.dumps(rows))
@@ -318,7 +316,7 @@ def update_cnn(axis: list[str], missing: list):
             w.writerow(["date", "score", "rating"])
             for r in rows:
                 w.writerow([r["date"], r["score"], r["rating"]])
-    log(f"CNN：新增 {added}；初值待定稿 {prov('cnn')}")
+    log(f"CNN：新增 {added}")
     if axis[-1] not in have and axis[-1] not in added:
         missing.append(f"CNN：官方端点暂无 {axis[-1]} 的数据")
 
