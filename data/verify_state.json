@@ -1,14 +1,10 @@
 {
  "provisional": {
-  "price": [
-   "2026-11-23"
-  ],
+  "price": [],
   "cnn": [
    "2026-11-23"
   ],
-  "breadth": [
-   "2026-11-23"
-  ]
+  "breadth": []
  },
  "pending": [],
  "reported": []
