@@ -34,6 +34,11 @@ AAII_FROM = "2024-10-31"
 MEMBERS = Path(__file__).resolve().parent / "sp500_members_2026-11-20.txt"
 END_EXCL = "2026-11-21"
 
+# 已确认保留的 CNN 读数：CNN 事后把历史点改成了更晚时刻的读数，镜像数据集也跟着改了。
+# 2026-11-20 收盘后 CNN 显示 9.67，当日媒体报道 9.7（24/7 Wall St. 引 Kobeissi Letter；Benzinga 约 10），
+# CNN 历史后来显示 18.59。按确认保留 9.67。
+CNN_KEPT = {"2026-11-20": (9.67, 18.59, "用户确认保留：11-20 收盘后 CNN 显示 9.67，当日媒体报道 9.7；CNN 历史后来改为 18.59")}
+
 
 def jsround(v) -> float | int:
     x = math.floor(float(v) * 100 + 0.5) / 100
@@ -122,6 +127,10 @@ def main():
     U.log(f"参与度：{len(rows)} 天，首日 {rows[0]}，末日 {rows[-1]}")
 
     fg = cnn()
+    for r in fg:
+        if r["date"] in CNN_KEPT:
+            r["score"] = CNN_KEPT[r["date"]][0]
+            r["rating"] = U.fg_rating(r["score"])
     json.dump(fg, U.F_FG_JSON.open("w"))
     with U.F_FG_CSV.open("w", newline="") as f:
         w = csv.writer(f)
@@ -139,6 +148,10 @@ def main():
     json.dump([{"date": d, "bullish": b, "neutral": n, "bearish": s} for d, b, n, s in aa], U.F_AAII_JSON.open("w"))
     U.log(f"AAII：{len(aa)} 周，首周 {aa[0]}，末周 {aa[-1]}")
 
+    U.F_STATE.write_text(json.dumps({
+        "provisional": {"price": [], "cnn": [], "breadth": []}, "pending": [], "reported": [],
+        "kept": [{"kind": "CNN", "name": "恐慌贪婪指数", "date": d, "stored": v[0], "official": v[1], "reason": v[2]}
+                 for d, v in CNN_KEPT.items()]}, ensure_ascii=False, indent=1))
     U.build_outputs([])
     U.log("完成")
 
