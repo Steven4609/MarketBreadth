@@ -48,6 +48,11 @@ header .grow{flex:1}
 button{font:inherit;color:var(--ink);cursor:pointer}
 .btn{border:1px solid var(--line2);background:rgba(255,255,255,.05);border-radius:999px;padding:7px 16px;font-size:14px;font-weight:600;min-height:36px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:background .2s}
 .btn:hover{background:rgba(255,255,255,.1)}
+.langsw{display:inline-flex;gap:2px;padding:3px;border-radius:999px;border:1px solid var(--line2);background:rgba(255,255,255,.05);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.langsw button{border:0;background:none;color:var(--mute);font:600 13px/1 var(--font);padding:7px 13px;border-radius:999px;min-width:40px;cursor:pointer;transition:background .2s,color .2s}
+.langsw button:hover{color:var(--ink)}
+.langsw button.on{background:#eef2f8;color:#0b1220}
+.langsw button:focus-visible{outline:2px solid var(--spy);outline-offset:2px}
 .btn.on{background:#eef2f8;color:#0b1220;border-color:#eef2f8}
 .btn:focus-visible,.chip:focus-within{outline:2px solid var(--spy);outline-offset:2px}
 
@@ -144,6 +149,7 @@ footer a{color:var(--mute)}
  .cards,.stats{grid-template-columns:minmax(0,1fr)}
  .big{font-size:38px}.card,.panel,.stat{padding:16px 16px 14px}.notes{padding:16px}
  .fig{height:370px}.ph h2{font-size:17px;width:100%}.ph .grow{display:none}
+ header .grow{display:none}#lang{order:2;margin-left:auto}.asof{order:3}
  .btn{padding:6px 12px;font-size:13px}.chip{padding:6px 11px;font-size:13px}
 }
 </style>
@@ -155,7 +161,7 @@ footer a{color:var(--mute)}
   <h1 data-i18n="title">市场宽度和情绪报告</h1>
   <span class="asof glass"><span class="dot"></span><span id="asof"></span></span>
   <span class="grow"></span>
-  <button id="lang" class="btn" type="button">English</button>
+  <div class="langsw" id="lang" role="group" aria-label="语言 / Language"><button type="button" data-lang="zh">中</button><button type="button" data-lang="en">EN</button></div>
 </header>
 <p class="lede" data-i18n="lede"></p>
 
@@ -507,7 +513,7 @@ for(const [id,keys] of [['px',['spy','qqq']],['br',['p20','p50']],['aa',['bull',
 function labels(){
   document.documentElement.lang=lang==='zh'?'zh-CN':'en';document.title=t('title');
   for(const e of document.querySelectorAll('[data-i18n]'))e.textContent=t(e.dataset.i18n);
-  document.getElementById('lang').textContent=t('lang');
+  for(const b of document.querySelectorAll('#lang button')){const on=b.dataset.lang===lang;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);}
   for(const b of document.querySelectorAll('.rng button')){b.textContent=t(b.dataset.r);b.classList.toggle('on',b.dataset.r===range);}
   for(const c of Object.values(charts)){c.p.querySelector('.col').textContent=c.collapsed?t('exp'):t('col');c.resetB.textContent=t('reset');}
   for(const b of document.querySelectorAll('[data-mode]'))b.classList.toggle('on',b.dataset.mode===ovMode);
@@ -518,7 +524,7 @@ function labels(){
   cards();side();
 }
 function drawAll(){for(const c of Object.values(charts))if(!c.collapsed)draw(c);}
-document.getElementById('lang').addEventListener('click',()=>{lang=lang==='zh'?'en':'zh';labels();drawAll();for(const c of Object.values(charts))hideTip(c);});
+for(const b of document.querySelectorAll('#lang button'))b.addEventListener('click',()=>{if(b.dataset.lang===lang)return;lang=b.dataset.lang;labels();drawAll();for(const c of Object.values(charts))hideTip(c);});
 matchMedia('(max-width:640px)').addEventListener('change',()=>{for(const c of Object.values(charts))hideTip(c);drawAll();});
 
 /* liquid-glass sheen follows the pointer */
