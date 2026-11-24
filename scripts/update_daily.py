@@ -88,11 +88,68 @@ def download(tickers, **kw) -> pd.DataFrame:
     return pd.DataFrame()
 
 
+# ---------------------------------------------------------------- 当日收盘价补丁
+# Yahoo 的日 K 线在收盘后数小时内常常只有空的收盘价（close = null），
+# 当天收盘价只出现在实时报价字段 regularMarketPrice 里。
+# 规则：某只票缺 d 日收盘价，且其实时报价时间是纽约时间 d 日 16:00 之后，就用实时报价作为 d 日收盘价。
+_YS = None
+
+
+def live_close(ticker: str, d: str) -> float | None:
+    global _YS
+    if _YS is None:
+        from curl_cffi import requests as creq
+        _YS = creq.Session(impersonate="chrome")
+    for attempt in range(3):
+        try:
+            r = _YS.get(f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}",
+                        params={"range": "5d", "interval": "1d"}, timeout=20)
+            if r.status_code == 429:
+                time.sleep(3 * (attempt + 1)); continue
+            meta = r.json()["chart"]["result"][0]["meta"]
+            t = dt.datetime.fromtimestamp(meta["regularMarketTime"], NY)
+            px = meta.get("regularMarketPrice")
+            if px and t.date().isoformat() == d and t.time() >= dt.time(16, 0):
+                return float(px)
+            return None
+        except Exception:  # noqa: BLE001
+            time.sleep(2)
+    return None
+
+
+def patch_today(series: dict, tickers: list[str], d: str) -> list[str]:
+    """给缺 d 日收盘价的票补上实时报价收盘价；返回补了哪些。"""
+    done = []
+    for t in tickers:
+        s = series.get(t)
+        if s is not None and d in s.index:
+            continue
+        v = live_close(t, d)
+        if v is None:
+            continue
+        add = pd.Series([v], index=[d])
+        series[t] = add if s is None or s.empty else pd.concat([s[s.index < d], add])
+        done.append(t)
+    return done
+
+
+def ny_close_day() -> str | None:
+    """纽约时间已过 16:00 的工作日返回当天日期，否则返回 None。"""
+    now = dt.datetime.now(NY)
+    return now.date().isoformat() if now.weekday() < 5 and now.time() >= dt.time(16, 0) else None
+
+
 # ---------------------------------------------------------------- prices
 def update_prices(missing: list) -> list[str]:
     prices = json.loads(F_PRICES.read_text())
     df = download(["SPY", "QQQ", "^VIX"], period="1mo")
-    spy = closes(df, "SPY")
+    ser = {t: closes(df, t) for t in ["SPY", "QQQ", "^VIX"]}
+    today = ny_close_day()
+    if today:
+        fixed = patch_today(ser, ["SPY", "QQQ", "^VIX"], today)
+        if fixed:
+            log(f"价格：{today} 日 K 线收盘价为空，改用收盘后实时报价：{fixed}")
+    spy = ser["SPY"]
     if spy.empty:
         missing.append("价格：Yahoo 未返回 SPY 数据，本次不更新任何价格")
         return [d for d, _ in prices["SPY"]]
@@ -100,14 +157,15 @@ def update_prices(missing: list) -> list[str]:
     last_known = max(have["SPY"])
     new_dates = [d for d in spy.index if d > last_known]
     for t in ["SPY", "QQQ", "^VIX"]:
-        s = closes(df, t)
+        s = ser[t]
         for d in new_dates:
             if d in s.index:
                 prices[t].append([d, round(float(s[d]), 2)])
             else:
                 missing.append(f"价格：{t} 缺 {d}")
         prices[t].sort()
-    F_PRICES.write_text(json.dumps(prices, separators=(",", ":")))
+    if new_dates:  # 没有新数据就不重写文件；格式与初始文件一致
+        F_PRICES.write_text(json.dumps(prices))
     log(f"价格：新增 {len(new_dates)} 天 {new_dates}")
     return [d for d, _ in prices["SPY"]]
 
@@ -239,6 +297,11 @@ def update_breadth(axis: list[str], missing: list):
         log(f"参与度：第 {rnd + 1} 轮后取到 {len(series)}/{len(syms)} 只")
         if not todo:
             break
+    today = ny_close_day()
+    if today and today in targets:
+        fixed = patch_today(series, syms, today)
+        if fixed:
+            log(f"参与度：{len(fixed)} 只的 {today} 日 K 线收盘价为空，改用收盘后实时报价")
     if len(series) < MIN_STOCKS:
         missing.append(f"参与度：只取到 {len(series)}/{len(syms)} 只成分股，低于 {MIN_STOCKS}，本次不写入，下次自动补算")
         return

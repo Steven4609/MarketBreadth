@@ -38,7 +38,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install packages
-        run: pip install yfinance pandas requests lxml xlrd
+        run: pip install yfinance pandas requests lxml xlrd curl_cffi
 
       - name: Fetch data and compute
         run: python scripts/update_daily.py ${{ inputs.force && '--force' || '' }} ${{ inputs.check && '--check' || '' }}
