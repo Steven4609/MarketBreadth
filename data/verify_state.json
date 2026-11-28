@@ -4,8 +4,20 @@
   "cnn": [],
   "breadth": []
  },
- "pending": [],
- "reported": [],
+ "pending": [
+  {
+   "key": "CNN|恐慌贪婪指数|2026-11-23|14.88",
+   "kind": "CNN",
+   "name": "恐慌贪婪指数",
+   "date": "2026-11-23",
+   "stored": 16.97,
+   "official": 14.88,
+   "first_seen": "2026-11-27"
+  }
+ ],
+ "reported": [
+  "CNN|恐慌贪婪指数|2026-11-23|14.88"
+ ],
  "kept": [
   {
    "kind": "CNN",
